@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v7';
+const CACHE_NAME = 'couples-life-v8';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -136,11 +136,22 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     return response;
-  } catch {
-    // Fall back to cache for API calls if offline
+  } catch (error) {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return new Response(JSON.stringify({ error: 'Offline' }), {
+
+    // Only claim "offline" when the browser actually is. Reporting every
+    // failed request as offline hides the real cause — an Edge Function that
+    // was never deployed returns a 404 preflight, and dressing that up as a
+    // connectivity problem sends you looking in entirely the wrong place.
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    return new Response(JSON.stringify({
+      error: offline
+        ? 'Offline'
+        : 'Could not reach the server. If this is an Edge Function, check it is deployed.',
+      detail: String(error && error.message ? error.message : error),
+      url: request.url,
+    }), {
       status: 503,
       headers: { 'Content-Type': 'application/json' }
     });

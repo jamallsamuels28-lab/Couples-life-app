@@ -271,9 +271,18 @@ export async function generateRecipe(constraints = {}) {
     });
 
     if (error) {
+      // Distinguish "not deployed" from "broken", because the fix is entirely
+      // different and the generic message sent us looking in the wrong place.
+      const status = error.context?.status;
+      if (status === 404) {
+        return {
+          success: false,
+          error: 'The recipe function is not deployed yet. Supabase dashboard → Edge Functions → Deploy a new function → Via Editor, named generate-recipe.',
+        };
+      }
       return {
         success: false,
-        error: 'Recipe generation is temporarily unavailable. Please try again later.',
+        error: `Recipe generation failed${status ? ` (${status})` : ''}. ${error.message || 'Please try again later.'}`,
       };
     }
 

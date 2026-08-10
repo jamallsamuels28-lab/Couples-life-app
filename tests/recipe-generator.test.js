@@ -471,7 +471,27 @@ describe('generateRecipe', () => {
 
     const result = await generateRecipe();
     expect(result.success).toBe(false);
-    expect(result.error).toContain('temporarily unavailable');
+    expect(result.error).toContain('Recipe generation failed');
+  });
+
+  it('says the function is not deployed rather than blaming the network', async () => {
+    // A HAR capture showed the undeployed function surfacing as "offline",
+    // which sent us looking at connectivity instead of at a missing deploy.
+    const { getBothPreferences } = await import('../js/dietary-preferences.js');
+    const { fetchValidPantryItems } = await import('../js/pantry-module.js');
+    const { supabase } = await import('../js/supabase-client.js');
+
+    getBothPreferences.mockResolvedValue({ user: null, partner: null });
+    fetchValidPantryItems.mockResolvedValue({ success: true, data: [] });
+
+    supabase.functions.invoke.mockResolvedValue({
+      data: null,
+      error: { message: 'Not Found', context: { status: 404 } },
+    });
+
+    const result = await generateRecipe();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('not deployed');
   });
 
   it('returns error when generated recipe contains allergen', async () => {
