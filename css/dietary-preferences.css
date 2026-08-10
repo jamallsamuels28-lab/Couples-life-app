@@ -1,0 +1,103 @@
+/* ============================================================
+   DIETARY PREFERENCES — Couples Life App
+   Styles for the dietary preferences settings form.
+   
+   Constraints:
+   - Border-radius: 3px / 6px / 10px only (--r-sm, --r-md, --r-lg)
+   - Spacing: multiples of 4px (--s1 through --s7)
+   - Shadows: max 0 1px 2px
+   - No gradients, no emoji
+   - Icons: stroked paths, 1.5px weight, 20px bounding box
+   - Focus: 2px solid outline, 1px offset
+   - Reduced motion: transitions disabled
+   ============================================================ */
+
+/* Section container */
+.dietary-prefs-section {
+  margin-top: var(--s4);
+}
+
+/* Tag input container */
+.tag-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.tag-input-row {
+  display: flex;
+  gap: var(--s2);
+  align-items: center;
+}
+
+.tag-input-row .input {
+  flex: 1;
+}
+
+/* Tag list */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s1);
+}
+
+/* Tag badge with remove button */
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
+}
+
+.tag-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: var(--ink-3);
+  border-radius: var(--r-sm);
+}
+
+.tag-remove-btn:hover {
+  color: var(--ink);
+}
+
+.tag-remove-btn:focus {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* Macro targets grid */
+.macro-targets-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.macro-targets-fieldset > legend {
+  margin-bottom: var(--s2);
+}
+
+.macro-targets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s3);
+}
+
+@media (max-width: 480px) {
+  .macro-targets-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .tag-remove-btn,
+  .dietary-prefs-section .btn {
+    transition: none;
+  }
+}

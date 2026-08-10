@@ -1,0 +1,185 @@
+/* ============================================================
+   OVERLAP RIBBON — Couples Life App
+   Two partner tracks + combined free-time band below.
+
+   Constraints:
+   - Border-radius: 3px / 6px / 10px only
+   - Spacing: multiples of 4px
+   - Shadows: max 0 1px 2px
+   - Gradient ONLY on .overlap-fill (already defined in components.css)
+   - Icons: stroked paths, 1.5px, 20px box
+   - Numeric values: IBM Plex Mono, tabular-nums
+   ============================================================ */
+
+/* --- Container --- */
+.overlap-ribbon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s4);
+  background: var(--surface);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Header: eyebrow label + total free time --- */
+.overlap-ribbon__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s1);
+}
+
+.overlap-ribbon__label {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.overlap-ribbon__total {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  letter-spacing: -0.02em;
+}
+
+/* --- Hour markers row --- */
+.overlap-ribbon__hours {
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  height: 16px;
+  margin-bottom: var(--s1);
+}
+
+.overlap-ribbon__hour-mark {
+  position: absolute;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  transform: translateX(-50%);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* --- Track container (holds partner A, partner B, and combined) --- */
+.overlap-ribbon__tracks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+/* --- Individual track --- */
+.overlap-ribbon__track {
+  position: relative;
+  height: 24px;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+/* Track label (partner name, sr-only by default, shown on hover/focus) */
+.overlap-ribbon__track-label {
+  position: absolute;
+  left: var(--s2);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* --- Busy/sleep block inside a track --- */
+.overlap-ribbon__block {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: var(--r-sm);
+  min-width: 2px;
+}
+
+.overlap-ribbon__block--a {
+  background: oklch(var(--id-l) var(--id-c) var(--id-a-h) / var(--wash));
+  border: var(--hair) solid var(--id-a);
+}
+
+.overlap-ribbon__block--b {
+  background: oklch(var(--id-l) var(--id-c) var(--id-b-h) / var(--wash));
+  border: var(--hair) solid var(--id-b);
+}
+
+/* Sleep blocks (outside waking hours) */
+.overlap-ribbon__block--sleep {
+  background: var(--surface-2);
+  border: var(--hair) solid var(--line);
+  opacity: 0.6;
+}
+
+/* --- Combined band (free windows) --- */
+.overlap-ribbon__combined {
+  position: relative;
+  height: 28px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-top: var(--s1);
+}
+
+/* Free window segment — uses the gradient via .overlap-fill */
+.overlap-ribbon__free {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: var(--r-sm);
+  transition: opacity 0.15s ease;
+}
+
+/* Minor windows (shorter than longest) rendered at reduced opacity */
+.overlap-ribbon__free--minor {
+  opacity: 0.5;
+}
+
+/* --- Combined band label --- */
+.overlap-ribbon__combined-label {
+  position: absolute;
+  left: var(--s2);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* --- Tick marks on tracks --- */
+.overlap-ribbon__tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--hair);
+  background: var(--line);
+  pointer-events: none;
+}
+
+/* --- Empty state --- */
+.overlap-ribbon__empty {
+  text-align: center;
+  padding: var(--s4) var(--s2);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+/* --- Accessibility: reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .overlap-ribbon__free {
+    transition: none;
+  }
+}

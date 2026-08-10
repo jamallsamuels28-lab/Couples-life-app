@@ -1,0 +1,488 @@
+/* ============================================================
+   CALENDAR VIEWS — month / week / day
+   Greyscale chassis, two identity hues, no third colour.
+   ============================================================ */
+
+/* --- Header --------------------------------------------- */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s4);
+}
+
+.cal-header-main {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+.cal-title {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.cal-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.cal-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--s2);
+  background: transparent;
+  color: var(--ink-2);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.cal-nav-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.cal-today {
+  padding: 0 var(--s3);
+}
+
+/* Segmented view switch — shared shape with the design system's .seg */
+.seg {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+  padding: 2px;
+}
+
+.seg button {
+  font-family: inherit;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  padding: var(--s2) var(--s3);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+/* --- Month grid ------------------------------------------ */
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--hair);
+  margin-bottom: var(--s1);
+}
+
+.cal-weekday {
+  text-align: center;
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink-3);
+  padding: var(--s1) 0;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(88px, auto);
+  gap: var(--hair);
+  background: var(--line);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s1);
+  text-align: left;
+  font-family: inherit;
+  padding: var(--s2);
+  background: var(--surface);
+  border: 0;
+  cursor: pointer;
+  min-width: 0;
+  transition: background 0.12s ease;
+}
+
+.cal-cell:hover {
+  background: var(--surface-2);
+}
+
+.cal-cell--outside {
+  background: var(--bg);
+}
+
+.cal-cell--outside .cal-cell-date {
+  color: var(--ink-3);
+}
+
+.cal-cell-date {
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  align-self: flex-start;
+  min-width: 20px;
+  padding: 2px 0;
+  text-align: center;
+}
+
+/* Today is marked with ink, not a colour — colour means ownership here. */
+.cal-cell--today .cal-cell-date {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--r-sm);
+  padding: 2px var(--s1);
+}
+
+.cal-cell-events {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cal-chip {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s1);
+  font-size: var(--t-xs);
+  line-height: 1.35;
+  padding: 1px var(--s1);
+  border-radius: var(--r-sm);
+  border-left: 2px solid var(--id-shared);
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+.cal-chip.is-a { border-left-color: var(--id-a); }
+.cal-chip.is-b { border-left-color: var(--id-b); }
+
+.cal-chip-time {
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+
+.cal-chip-title {
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-more {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  padding-left: var(--s1);
+}
+
+/* --- Time grid (week + day) ------------------------------ */
+.cal-timegrid {
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.cal-daylabels {
+  display: grid;
+  grid-template-columns: 44px repeat(var(--cal-days, 7), 1fr);
+  border-bottom: var(--hair) solid var(--line);
+  background: var(--surface);
+}
+
+.cal-timegrid[data-days="1"] .cal-daylabels { --cal-days: 1; }
+
+.cal-daylabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: var(--s2) 0;
+  font-family: inherit;
+  background: transparent;
+  border: 0;
+  border-left: var(--hair) solid var(--line);
+  cursor: pointer;
+}
+
+.cal-daylabel-name {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.cal-daylabel-num {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+}
+
+.cal-daylabel--today .cal-daylabel-num {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--r-sm);
+  padding: 0 var(--s1);
+}
+
+.cal-scroll {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.cal-gutter {
+  position: relative;
+  height: 1440px;
+  border-right: var(--hair) solid var(--line);
+}
+
+.cal-hour {
+  position: absolute;
+  right: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  transform: translateY(-50%);
+}
+
+.cal-gutter .cal-hour:nth-child(1)  { top: 0; }
+.cal-gutter .cal-hour:nth-child(2)  { top: 4.1667%; }
+.cal-gutter .cal-hour:nth-child(3)  { top: 8.3333%; }
+.cal-gutter .cal-hour:nth-child(4)  { top: 12.5%; }
+.cal-gutter .cal-hour:nth-child(5)  { top: 16.6667%; }
+.cal-gutter .cal-hour:nth-child(6)  { top: 20.8333%; }
+.cal-gutter .cal-hour:nth-child(7)  { top: 25%; }
+.cal-gutter .cal-hour:nth-child(8)  { top: 29.1667%; }
+.cal-gutter .cal-hour:nth-child(9)  { top: 33.3333%; }
+.cal-gutter .cal-hour:nth-child(10) { top: 37.5%; }
+.cal-gutter .cal-hour:nth-child(11) { top: 41.6667%; }
+.cal-gutter .cal-hour:nth-child(12) { top: 45.8333%; }
+.cal-gutter .cal-hour:nth-child(13) { top: 50%; }
+.cal-gutter .cal-hour:nth-child(14) { top: 54.1667%; }
+.cal-gutter .cal-hour:nth-child(15) { top: 58.3333%; }
+.cal-gutter .cal-hour:nth-child(16) { top: 62.5%; }
+.cal-gutter .cal-hour:nth-child(17) { top: 66.6667%; }
+.cal-gutter .cal-hour:nth-child(18) { top: 70.8333%; }
+.cal-gutter .cal-hour:nth-child(19) { top: 75%; }
+.cal-gutter .cal-hour:nth-child(20) { top: 79.1667%; }
+.cal-gutter .cal-hour:nth-child(21) { top: 83.3333%; }
+.cal-gutter .cal-hour:nth-child(22) { top: 87.5%; }
+.cal-gutter .cal-hour:nth-child(23) { top: 91.6667%; }
+.cal-gutter .cal-hour:nth-child(24) { top: 95.8333%; }
+
+.cal-cols {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  height: 1440px;
+}
+
+.cal-col {
+  position: relative;
+  border-left: var(--hair) solid var(--line);
+  min-width: 0;
+}
+
+.cal-col--today {
+  background: var(--surface-2);
+}
+
+.cal-hourline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--hair);
+  background: var(--line);
+}
+
+/* Shift and sleep bands sit behind everything else */
+.cal-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.cal-band--shift.cal-band--a {
+  background: var(--id-a);
+  opacity: 0.16;
+}
+
+.cal-band--shift.cal-band--b {
+  background: var(--id-b);
+  opacity: 0.16;
+}
+
+/* Same hatch as the overlap ribbon, so sleep reads identically everywhere */
+.cal-band--sleep {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--line-strong) 0 2px,
+    transparent 2px 6px
+  );
+  opacity: 0.7;
+}
+
+.cal-event {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  text-align: left;
+  font-family: inherit;
+  padding: 2px var(--s1);
+  background: var(--surface);
+  border: var(--hair) solid var(--line);
+  border-left: 2px solid var(--id-shared);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  min-width: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+.cal-event.is-a { border-left-color: var(--id-a); }
+.cal-event.is-b { border-left-color: var(--id-b); }
+
+.cal-event-title {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-event-time {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.cal-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ink);
+  z-index: 2;
+}
+
+.cal-now::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+/* --- Legend ---------------------------------------------- */
+.cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  margin-top: var(--s3);
+}
+
+.cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.cal-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.cal-swatch--a { background: var(--id-a); }
+.cal-swatch--b { background: var(--id-b); }
+.cal-swatch--shared { background: var(--id-shared); }
+.cal-swatch--sleep {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--line-strong) 0 2px,
+    transparent 2px 4px
+  );
+  border: var(--hair) solid var(--line-strong);
+}
+
+/* --- Focus ------------------------------------------------ */
+.cal-cell:focus-visible,
+.cal-event:focus-visible,
+.cal-nav-btn:focus-visible,
+.cal-daylabel:focus-visible,
+.seg button:focus-visible,
+#cal-surface:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- Narrow screens --------------------------------------- */
+@media (max-width: 560px) {
+  .cal-grid {
+    grid-auto-rows: minmax(64px, auto);
+  }
+
+  /* Chips lose their text and become owner-coloured markers */
+  .cal-chip-title,
+  .cal-chip-time {
+    display: none;
+  }
+
+  .cal-chip {
+    height: 4px;
+    border-radius: 2px;
+    border-left: 0;
+    background: var(--id-shared);
+    padding: 0;
+  }
+
+  .cal-chip.is-a { background: var(--id-a); }
+  .cal-chip.is-b { background: var(--id-b); }
+
+  .cal-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cal-scroll {
+    max-height: 66vh;
+  }
+}

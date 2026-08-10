@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system — couples app</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS — hand these to Kiro verbatim
+   ============================================================ */
+:root{
+  --h-slate:250; --h-teal:190; --h-moss:145;
+  --h-brass:85; --h-clay:35;  --h-plum:330;
+  --id-a-h:250; --id-b-h:35;
+
+  --font-ui:'General Sans','Inter',system-ui,-apple-system,sans-serif;
+  --font-num:'IBM Plex Mono',ui-monospace,monospace;
+
+  --t-xs:0.6875rem; --t-sm:0.8125rem; --t-base:0.9375rem;
+  --t-lg:1.125rem;  --t-xl:1.5rem;    --t-2xl:2rem;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --r-sm:3px; --r-md:6px; --r-lg:10px;
+  --hair:1px;
+}
+:root[data-theme="dark"]{
+  --bg:#101012; --surface:#18181B; --surface-2:#1F1F23;
+  --line:#2A2A2F; --line-strong:#3A3A41;
+  --ink:#ECECEA; --ink-2:#9A9A96; --ink-3:#6A6A67;
+  --id-l:0.70; --id-c:0.125; --wash:0.20;
+}
+:root[data-theme="light"]{
+  --bg:#FAFAF9; --surface:#FFFFFF; --surface-2:#F2F2F0;
+  --line:#E3E3E0; --line-strong:#CFCFCB;
+  --ink:#18181A; --ink-2:#666662; --ink-3:#93938E;
+  --id-l:0.58; --id-c:0.125; --wash:0.14;
+}
+:root{
+  --id-a:oklch(var(--id-l) var(--id-c) var(--id-a-h));
+  --id-b:oklch(var(--id-l) var(--id-c) var(--id-b-h));
+  --id-shared:var(--ink-2);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:var(--font-ui);font-size:var(--t-base);
+  line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding:var(--s5) var(--s4) var(--s7);
+  transition:background .25s ease,color .25s ease;
+}
+.wrap{max-width:560px;margin:0 auto}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+.eyebrow{font-size:var(--t-xs);text-transform:uppercase;letter-spacing:0.09em;color:var(--ink-3);font-weight:500}
+h1{font-size:var(--t-2xl);font-weight:600;letter-spacing:-0.025em;line-height:1.15}
+h2{font-size:var(--t-lg);font-weight:600;letter-spacing:-0.015em}
+.sub{color:var(--ink-2);font-size:var(--t-sm);margin-top:var(--s2)}
+section{margin-top:var(--s6)}
+.rule{height:var(--hair);background:var(--line);margin:var(--s5) 0}
+
+.ctl-row{display:flex;gap:var(--s2);align-items:center;flex-wrap:wrap;margin-top:var(--s3)}
+.seg{display:inline-flex;background:var(--surface-2);border:var(--hair) solid var(--line);border-radius:var(--r-md);padding:2px}
+.seg button{font-family:inherit;font-size:var(--t-sm);font-weight:500;padding:var(--s2) var(--s3);border:0;border-radius:var(--r-sm);background:transparent;color:var(--ink-2);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgb(0 0 0 /.12)}
+.seg button:focus-visible{outline:2px solid var(--id-a);outline-offset:1px}
+
+.picker{margin-top:var(--s3)}
+.picker-label{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--s2)}
+.swatches{display:flex;gap:var(--s2)}
+.sw{width:34px;height:34px;border-radius:var(--r-md);border:var(--hair) solid var(--line);cursor:pointer;position:relative;padding:0;transition:transform .12s ease}
+.sw:hover:not(:disabled){transform:translateY(-2px)}
+.sw:disabled{opacity:.22;cursor:not-allowed}
+.sw[aria-pressed="true"]::after{content:"";position:absolute;inset:-3px;border-radius:9px;border:2px solid var(--ink)}
+.sw:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+/* ---------- shift editor ---------- */
+.editor{background:var(--surface);border:var(--hair) solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-top:var(--s4)}
+.ed-person{padding:var(--s4);border-bottom:var(--hair) solid var(--line)}
+.ed-person:last-child{border-bottom:0}
+.ed-head{display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ed-name{font-size:var(--t-sm);font-weight:500}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)}
+.field label{display:block;font-size:var(--t-xs);color:var(--ink-3);margin-bottom:var(--s1)}
+.field input{
+  width:100%;font-family:var(--font-num);font-size:var(--t-sm);
+  background:var(--surface-2);color:var(--ink);
+  border:var(--hair) solid var(--line);border-radius:var(--r-sm);
+  padding:var(--s2) var(--s3);
+}
+.field input:focus{outline:2px solid var(--ink-3);outline-offset:1px;border-color:transparent}
+.off-toggle{margin-top:var(--s3);display:flex;align-items:center;gap:var(--s2);font-size:var(--t-xs);color:var(--ink-2)}
+.off-toggle input{accent-color:var(--ink-2)}
+
+/* ---------- SIGNATURE: the overlap ribbon ---------- */
+.ribbon-card{background:var(--surface);border:var(--hair) solid var(--line);border-radius:var(--r-lg);padding:var(--s4);margin-top:var(--s4)}
+.ribbon-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:var(--s4)}
+.track{position:relative;height:26px;border-radius:var(--r-sm);background:var(--surface-2);overflow:hidden;margin-bottom:var(--s2)}
+.track-label{font-size:var(--t-xs);color:var(--ink-3);margin-bottom:var(--s1);display:flex;justify-content:space-between}
+.blk{position:absolute;top:0;bottom:0}
+.blk.busy-a{background:var(--id-a);opacity:.85}
+.blk.busy-b{background:var(--id-b);opacity:.85}
+.blk.sleep{background:repeating-linear-gradient(135deg,var(--line-strong) 0 2px,transparent 2px 6px);border-top:var(--hair) solid var(--line-strong);border-bottom:var(--hair) solid var(--line-strong)}
+.overlap{position:relative;height:44px;border-radius:var(--r-md);background:var(--surface-2);overflow:hidden;margin-top:var(--s4)}
+.overlap-fill{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,var(--id-a),var(--id-b));display:flex;align-items:center;justify-content:center}
+.overlap-fill.minor{opacity:.42}
+.overlap-fill span{font-family:var(--font-num);font-size:var(--t-xs);font-weight:500;color:var(--bg);letter-spacing:0.02em;white-space:nowrap;padding:0 var(--s2)}
+.hours{display:flex;justify-content:space-between;margin-top:var(--s2);font-size:var(--t-xs);color:var(--ink-3)}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;font-size:var(--t-xs);color:var(--ink-3)}
+
+.list{border:var(--hair) solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--surface);margin-top:var(--s4)}
+.row{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:var(--hair) solid var(--line)}
+.row:last-child{border-bottom:0}
+.tick{width:3px;align-self:stretch;border-radius:2px;flex-shrink:0}
+.row-main{flex:1;min-width:0}
+.row-title{font-size:var(--t-sm);font-weight:500}
+.row-meta{font-size:var(--t-xs);color:var(--ink-3);margin-top:1px}
+.row-time{font-size:var(--t-sm);color:var(--ink-2)}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--hair);background:var(--line);border:var(--hair) solid var(--line);border-radius:var(--r-lg);overflow:hidden;margin-top:var(--s4)}
+.stat{background:var(--surface);padding:var(--s4) var(--s3)}
+.stat-v{font-size:var(--t-xl);font-weight:500;letter-spacing:-0.03em}
+.stat-v small{font-size:var(--t-sm);color:var(--ink-3);margin-left:2px}
+.stat-k{font-size:var(--t-xs);color:var(--ink-3);margin-top:var(--s1)}
+.bar{height:3px;background:var(--surface-2);border-radius:2px;margin-top:var(--s3);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--id-a);border-radius:2px}
+
+pre{background:var(--surface);border:var(--hair) solid var(--line);border-radius:var(--r-md);padding:var(--s4);overflow-x:auto;font-family:var(--font-num);font-size:var(--t-xs);line-height:1.7;color:var(--ink-2);margin-top:var(--s3)}
+.note{font-size:var(--t-sm);color:var(--ink-2);margin-top:var(--s3)}
+@media (max-width:420px){.fields{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Design system</p>
+  <h1>Neutral chassis,<br>two identities.</h1>
+  <p class="sub">Everything is greyscale except the two of you. Colour only appears where it carries meaning: who owns a thing, and when you overlap.</p>
+
+  <div class="ctl-row">
+    <div class="seg" role="group" aria-label="Theme">
+      <button data-theme-set="dark" aria-pressed="true">Dark</button>
+      <button data-theme-set="light" aria-pressed="false">Light</button>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <section>
+    <h2>Pick your colours</h2>
+    <p class="sub">Six options, all tuned to identical lightness and saturation — so any pair stays balanced and neither person's events shout louder. Choices within 60° of each other are locked out, because near-identical hues make a shared calendar unreadable.</p>
+    <div class="picker">
+      <div class="picker-label"><span class="eyebrow">Jamall</span></div>
+      <div class="swatches" id="pickA" role="group" aria-label="Jamall's colour"></div>
+    </div>
+    <div class="picker">
+      <div class="picker-label"><span class="eyebrow">Rebecca</span></div>
+      <div class="swatches" id="pickB" role="group" aria-label="Rebecca's colour"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Set the shifts</h2>
+    <p class="sub">Change any time and the ribbon below recalculates. Overnight shifts are handled — an end time earlier than the start just means it runs past midnight.</p>
+
+    <div class="editor">
+      <div class="ed-person">
+        <div class="ed-head"><i class="dot" style="background:var(--id-a)"></i><span class="ed-name">Jamall</span></div>
+        <div class="fields">
+          <div class="field"><label for="aws">Work starts</label><input id="aws" type="time" value="22:30"></div>
+          <div class="field"><label for="awe">Work ends</label><input id="awe" type="time" value="09:00"></div>
+          <div class="field"><label for="ass">Sleep starts</label><input id="ass" type="time" value="09:30"></div>
+          <div class="field"><label for="ase">Sleep ends</label><input id="ase" type="time" value="17:30"></div>
+        </div>
+        <label class="off-toggle"><input id="aoff" type="checkbox"> Rest day (no work)</label>
+      </div>
+
+      <div class="ed-person">
+        <div class="ed-head"><i class="dot" style="background:var(--id-b)"></i><span class="ed-name">Rebecca</span></div>
+        <div class="fields">
+          <div class="field"><label for="bws">Work starts</label><input id="bws" type="time" value="07:00"></div>
+          <div class="field"><label for="bwe">Work ends</label><input id="bwe" type="time" value="15:30"></div>
+          <div class="field"><label for="bss">Sleep starts</label><input id="bss" type="time" value="23:00"></div>
+          <div class="field"><label for="bse">Sleep ends</label><input id="bse" type="time" value="06:00"></div>
+        </div>
+        <label class="off-toggle"><input id="boff" type="checkbox"> Rest day (no work)</label>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Signature element</p>
+    <h2>The overlap ribbon</h2>
+    <p class="sub">Solid blocks are work, hatched blocks are sleep. The band underneath is the only place the two colours ever touch.</p>
+
+    <div class="ribbon-card">
+      <div class="ribbon-head">
+        <div>
+          <div class="row-title">One day, both schedules</div>
+          <div class="row-meta" id="windowCount">—</div>
+        </div>
+        <div class="num row-time" id="totalFree">—</div>
+      </div>
+
+      <div class="track-label"><span>Jamall</span></div>
+      <div class="track" id="trackA"></div>
+
+      <div class="track-label"><span>Rebecca</span></div>
+      <div class="track" id="trackB"></div>
+
+      <div class="overlap" id="overlap"></div>
+      <div class="hours"><span class="num">00</span><span class="num">06</span><span class="num">12</span><span class="num">18</span><span class="num">24</span></div>
+    </div>
+    <p class="note">Windows under 45 minutes are discarded — they're technically free time, but nobody plans anything in them.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Components</p>
+    <h2>Events</h2>
+    <div class="list">
+      <div class="row"><i class="tick" style="background:var(--id-a)"></i><div class="row-main"><div class="row-title">AMXL night shift</div><div class="row-meta">Recurring · Sun–Wed</div></div><div class="row-time num">22:30</div></div>
+      <div class="row"><i class="tick" style="background:var(--id-b)"></i><div class="row-main"><div class="row-title">Early finish</div><div class="row-meta">Recurring</div></div><div class="row-time num">15:30</div></div>
+      <div class="row"><i class="tick" style="background:var(--id-shared)"></i><div class="row-main"><div class="row-title">Physio, Spire Manchester</div><div class="row-meta">Shared</div></div><div class="row-time num">11:00</div></div>
+    </div>
+    <p class="note">Shared events take graphite, not a third colour. Adding one would break the system — with two identities plus neutral, everything on screen is instantly legible as yours, hers, or both.</p>
+  </section>
+
+  <section>
+    <h2>Numbers</h2>
+    <div class="stats">
+      <div class="stat"><div class="stat-v num">2,410<small>kcal</small></div><div class="stat-k">Remaining</div></div>
+      <div class="stat"><div class="stat-v num">118<small>g</small></div><div class="stat-k">Protein left</div></div>
+      <div class="stat"><div class="stat-v num">9,240</div><div class="stat-k">Steps</div></div>
+    </div>
+    <div class="bar"><i style="width:68%"></i></div>
+    <p class="note">Every numeral is monospaced and tabular. Weights, times and macros line up column to column, and a changing value doesn't make the layout twitch.</p>
+  </section>
+
+  <div class="rule"></div>
+
+  <section>
+    <p class="eyebrow">For Kiro</p>
+    <h2>Rules, not vibes</h2>
+    <pre>Never hardcode an identity colour. Always
+oklch(var(--id-l) var(--id-c) var(--id-x-h)).
+
+Border radius: 3 / 6 / 10px only.
+Shadows: max 0 1px 2px. No 30px blurs.
+Spacing: multiples of 4 only.
+No gradients except .overlap-fill.
+No emoji in the interface.
+Icons: stroked, 1.5px, 20px box.
+Focus: 2px solid outline, 1px offset.
+Motion: 120-250ms, ease. Honour
+prefers-reduced-motion.</pre>
+  </section>
+
+</div>
+
+<script>
+const HUES=[["Slate",250],["Teal",190],["Moss",145],["Brass",85],["Clay",35],["Plum",330]];
+const state={a:250,b:35};
+const MIN_FREE=45;
+
+function hueGap(x,y){const d=Math.abs(x-y)%360;return Math.min(d,360-d);}
+function buildPickers(){
+  [["pickA","a","b"],["pickB","b","a"]].forEach(([id,me,other])=>{
+    const el=document.getElementById(id);el.innerHTML="";
+    HUES.forEach(([name,h])=>{
+      const b=document.createElement("button");
+      b.className="sw";
+      b.style.background="oklch(var(--id-l) var(--id-c) "+h+")";
+      b.title=name;b.setAttribute("aria-label",name);
+      b.disabled=hueGap(h,state[other])<60&&state[me]!==h;
+      b.setAttribute("aria-pressed",state[me]===h);
+      b.onclick=()=>{state[me]=h;applyColours();};
+      el.appendChild(b);
+    });
+  });
+}
+function applyColours(){
+  document.documentElement.style.setProperty("--id-a-h",state.a);
+  document.documentElement.style.setProperty("--id-b-h",state.b);
+  buildPickers();
+}
+
+/* ============================================================
+   REFERENCE IMPLEMENTATION — this is the algorithm Kiro builds
+   ============================================================ */
+const toMin=v=>{const[p,q]=v.split(":").map(Number);return p*60+q;};
+const fmt=m=>{m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");};
+const dur=m=>Math.floor(m/60)+"h "+String(m%60).padStart(2,"0")+"m";
+const pct=m=>(m/1440*100).toFixed(3)+"%";
+
+// an interval that crosses midnight becomes two intervals within the day
+function normalise(start,end){
+  if(start===end) return [];
+  return end>start ? [[start,end]] : [[start,1440],[0,end]];
+}
+function mergeBusy(iv){
+  const s=iv.slice().sort((x,y)=>x[0]-y[0]),out=[];
+  for(const[a,b]of s){
+    const last=out[out.length-1];
+    if(last&&a<=last[1]) last[1]=Math.max(last[1],b);
+    else out.push([a,b]);
+  }
+  return out;
+}
+function complement(merged){
+  const free=[];let cur=0;
+  for(const[a,b]of merged){ if(a>cur) free.push([cur,a]); cur=Math.max(cur,b); }
+  if(cur<1440) free.push([cur,1440]);
+  return free;
+}
+function bothFree(intervalsA,intervalsB){
+  return complement(mergeBusy(intervalsA.concat(intervalsB)))
+         .filter(([a,b])=>b-a>=MIN_FREE);
+}
+
+function readPerson(p){
+  const off=document.getElementById(p+"off").checked;
+  const work=off?[]:normalise(toMin(document.getElementById(p+"ws").value),
+                              toMin(document.getElementById(p+"we").value));
+  const sleep=normalise(toMin(document.getElementById(p+"ss").value),
+                        toMin(document.getElementById(p+"se").value));
+  return {work,sleep,all:work.concat(sleep)};
+}
+function paint(trackId,person,cls){
+  const t=document.getElementById(trackId);t.innerHTML="";
+  const add=(iv,c)=>iv.forEach(([a,b])=>{
+    const d=document.createElement("div");
+    d.className="blk "+c;d.style.left=pct(a);d.style.width=pct(b-a);
+    t.appendChild(d);
+  });
+  add(person.sleep,"sleep");
+  add(person.work,cls);
+}
+function render(){
+  const A=readPerson("a"),B=readPerson("b");
+  paint("trackA",A,"busy-a");
+  paint("trackB",B,"busy-b");
+
+  const windows=bothFree(A.all,B.all);
+  const ov=document.getElementById("overlap");ov.innerHTML="";
+
+  if(!windows.length){
+    ov.innerHTML='<div class="empty">No shared window over 45 minutes</div>';
+    document.getElementById("windowCount").textContent="Nothing lines up today";
+    document.getElementById("totalFree").textContent="0h 00m";
+    return;
+  }
+  const longest=windows.reduce((m,w)=>(w[1]-w[0])>(m[1]-m[0])?w:m);
+  windows.forEach(([a,b])=>{
+    const f=document.createElement("div");
+    f.className="overlap-fill"+(a===longest[0]?"":" minor");
+    f.style.left=pct(a);f.style.width=pct(b-a);
+    if(a===longest[0]) f.innerHTML="<span>"+fmt(a)+" – "+fmt(b)+" &nbsp;·&nbsp; both free</span>";
+    ov.appendChild(f);
+  });
+  const total=windows.reduce((s,[a,b])=>s+(b-a),0);
+  document.getElementById("windowCount").textContent=
+    windows.length===1?"1 shared window":windows.length+" shared windows";
+  document.getElementById("totalFree").textContent=dur(total);
+}
+
+document.querySelectorAll(".editor input").forEach(i=>i.addEventListener("input",render));
+document.querySelectorAll("[data-theme-set]").forEach(b=>{
+  b.onclick=()=>{
+    document.documentElement.dataset.theme=b.dataset.themeSet;
+    document.querySelectorAll("[data-theme-set]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+  };
+});
+
+applyColours();render();
+</script>
+</body>
+</html>

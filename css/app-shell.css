@@ -1,0 +1,197 @@
+/* ============================================================
+   APP SHELL — Navigation, Auth Screens, Layout
+   ============================================================ */
+
+/* --- Main Layout --- */
+.view-container {
+  padding: var(--s4);
+  padding-bottom: calc(64px + var(--s4)); /* space for bottom nav */
+  min-height: 100dvh;
+}
+
+/* --- Bottom Navigation --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 64px;
+  background: var(--surface);
+  border-top: var(--hair) solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s2) var(--s4);
+  background: none;
+  border: none;
+  border-radius: var(--r-md);
+  color: var(--ink-3);
+  font-family: var(--font-ui);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:hover {
+  color: var(--ink-2);
+}
+
+.nav-item.active {
+  color: var(--ink);
+}
+
+.nav-item.active .nav-icon {
+  stroke: var(--ink);
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.nav-label {
+  letter-spacing: 0.02em;
+}
+
+/* Active indicator dot */
+.nav-item.active::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink);
+  margin-top: var(--s1);
+}
+
+/* --- Auth Screen --- */
+.auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--s6);
+  text-align: center;
+  gap: var(--s4);
+}
+
+.auth-subtitle {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+}
+
+.auth-form .auth-btn {
+  width: 100%;
+}
+
+.auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s3) var(--s5);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-size: var(--t-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.auth-btn:hover {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+/* --- Error States --- */
+.auth-error {
+  color: #e55;
+  font-size: var(--t-sm);
+  padding: var(--s3) var(--s4);
+  background: rgba(238, 85, 85, 0.08);
+  border-radius: var(--r-md);
+  max-width: 320px;
+}
+
+.auth-error.hidden {
+  display: none;
+}
+
+.auth-retry-btn {
+  padding: var(--s2) var(--s4);
+  background: none;
+  color: var(--ink-2);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-size: var(--t-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.auth-retry-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/* --- Partner Not Linked --- */
+.partner-not-linked {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* --- View Placeholders --- */
+.view-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--s3);
+}
+
+.view-placeholder h2 {
+  color: var(--ink);
+}
+
+.view-placeholder-text {
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+}
+
+/* --- Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .auth-btn,
+  .auth-retry-btn {
+    transition: none;
+  }
+}

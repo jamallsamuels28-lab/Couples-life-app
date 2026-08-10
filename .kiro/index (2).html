@@ -1,0 +1,2327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JAMALL">
+<title>Jamall · Coaching Portal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a;
+    --bg-2: #141414;
+    --bg-3: #1c1c1c;
+    --line: #2a2a2a;
+    --line-soft: #1f1f1f;
+    --text: #f5f5f0;
+    --text-2: #8a8a85;
+    --text-3: #5a5a55;
+    --acid: #d4ff3f;
+    --warm: #ff6b3d;
+    --blue: #6fa8ff;
+    --safe-top: env(safe-area-inset-top);
+    --safe-bot: env(safe-area-inset-bottom);
+  }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter Tight', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: calc(72px + var(--safe-bot));
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  button { font-family: inherit; background: none; border: none; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+  /* Header */
+  header.top {
+    padding: 16px 20px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .brand {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-top: 2px;
+  }
+  .week-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--acid);
+    letter-spacing: 0.08em;
+    text-align: right;
+  }
+  .week-tag span { color: var(--text-3); }
+
+  /* View container */
+  main { padding: 0; }
+  .view { display: none; animation: fade 0.25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* HERO - dashboard */
+  .hero {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--line-soft);
+    position: relative;
+  }
+  .hero-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .hero-weight {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .hero-num {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .hero-unit {
+    font-size: 16px;
+    color: var(--text-2);
+    font-weight: 500;
+  }
+  .hero-sub {
+    margin-top: 12px;
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .hero-sub .change { color: var(--acid); font-weight: 600; }
+  .hero-sub .change.up { color: var(--warm); }
+  .hero-sub .divider { color: var(--text-3); }
+
+  /* Stat cards row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .stat {
+    padding: 14px 12px;
+    border-right: 1px solid var(--line-soft);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-top: 4px;
+  }
+  .stat-value small {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-left: 2px;
+  }
+
+  /* Section */
+  section.block {
+    padding: 20px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .block-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .block-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .block-meta {
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Chart */
+  .chart-wrap {
+    position: relative;
+    height: 180px;
+    margin: 8px -4px 0;
+  }
+  #chart { width: 100%; height: 100%; display: block; }
+  .chart-axis {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    margin-top: 6px;
+    padding: 0 4px;
+  }
+  .range-tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .range-tabs button {
+    flex: 1;
+    padding: 6px 0;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text-2);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    text-transform: uppercase;
+  }
+  .range-tabs button.active {
+    background: var(--acid);
+    color: var(--bg);
+    border-color: var(--acid);
+  }
+
+  /* Goal progress */
+  .goals {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .goal {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .goal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .goal-name {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .goal-name .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    margin-left: 6px;
+  }
+  .goal-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .goal-val b { color: var(--text); font-weight: 700; }
+  .bar {
+    height: 4px;
+    background: var(--bg-3);
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--acid);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .bar-fill.warm { background: var(--warm); }
+  .bar-fill.blue { background: var(--blue); }
+
+  /* Log list */
+  .log-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .log-row {
+    display: grid;
+    grid-template-columns: 50px 1fr auto auto;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line-soft);
+    gap: 12px;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-wk {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.08em;
+  }
+  .log-date {
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .log-wt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .log-chg {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    min-width: 44px;
+    text-align: right;
+    font-weight: 600;
+  }
+  .log-chg.down { color: var(--acid); }
+  .log-chg.up { color: var(--warm); }
+  .log-chg.flat { color: var(--text-3); }
+
+  /* Log form */
+  .log-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field label {
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .field input {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .field input:focus {
+    border-color: var(--acid);
+  }
+  .btn-primary {
+    background: var(--acid);
+    color: var(--bg);
+    padding: 14px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .btn-primary:active { transform: scale(0.98); }
+  .unit-toggle {
+    display: flex;
+    gap: 0;
+    margin-left: auto;
+    border: 1px solid var(--line);
+  }
+  .unit-toggle button {
+    padding: 4px 10px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-2);
+    font-weight: 600;
+  }
+  .unit-toggle button.on {
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  /* Macros */
+  .macro-card {
+    background: var(--bg-2);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 2px solid var(--acid);
+  }
+  .macro-card.rest { border-left-color: var(--blue); }
+  .macro-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .macro-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .macro-kcal {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .macro-kcal small { font-size: 10px; color: var(--text-2); font-weight: 500; margin-left: 2px; }
+  .macro-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .macro-cell {
+    border-top: 1px solid var(--line-soft);
+    padding-top: 10px;
+  }
+  .macro-cell-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    text-transform: uppercase;
+  }
+  .macro-cell-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .macro-cell-val small { font-size: 10px; color: var(--text-2); font-weight: 500; }
+
+  /* Meals */
+  .meal {
+    border-top: 1px solid var(--line-soft);
+    padding: 14px 0;
+  }
+  .meal:first-child { border-top: none; }
+  .meal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .meal-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .meal-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .food-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .food-row span:last-child {
+    color: var(--text-2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* Training */
+  .split-head {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .day-cell {
+    padding: 8px 2px;
+    text-align: center;
+    border: 1px solid var(--line-soft);
+  }
+  .day-cell.train {
+    background: var(--bg-2);
+    border-color: var(--line);
+  }
+  .day-cell.cur {
+    background: var(--acid);
+    color: var(--bg);
+    border-color: var(--acid);
+  }
+  .day-cell-day {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .day-cell-type {
+    font-size: 8px;
+    margin-top: 2px;
+    color: var(--text-3);
+  }
+  .day-cell.train .day-cell-type { color: var(--text-2); }
+  .day-cell.cur .day-cell-day,
+  .day-cell.cur .day-cell-type { color: var(--bg); }
+
+  .workout {
+    margin-bottom: 20px;
+  }
+  .workout-title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .workout-sub {
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .ex {
+    border: 1px solid var(--line-soft);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-2);
+  }
+  .ex-tappable {
+    cursor: pointer;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ex-tappable:active {
+    background: var(--bg-3);
+    border-color: var(--line);
+  }
+  .ex-tappable::after {
+    content: '›';
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    color: var(--text-3);
+    font-size: 16px;
+    line-height: 1;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ex-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .ex-name {
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .ex-sets {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--acid);
+    font-weight: 600;
+    white-space: pre;
+    text-align: right;
+  }
+  .ex-pr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* Coach notes */
+  .coach-card {
+    background: linear-gradient(180deg, var(--bg-2), var(--bg));
+    border: 1px solid var(--line-soft);
+    padding: 16px;
+  }
+  .coach-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--acid);
+    margin-bottom: 10px;
+  }
+  .coach-quote {
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .coach-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .coach-list li {
+    font-size: 12px;
+    color: var(--text-2);
+    padding: 4px 0 4px 16px;
+    position: relative;
+    line-height: 1.4;
+  }
+  .coach-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--acid);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Supplements */
+  .supp-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line-soft);
+    font-size: 12px;
+    align-items: baseline;
+  }
+  .supp-row:first-child { border-top: none; }
+  .supp-name { font-weight: 500; }
+  .supp-dose, .supp-when {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+  }
+
+  /* Nav */
+  nav.bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 10, 0.9);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    border-top: 1px solid var(--line);
+    padding: 10px 0 calc(10px + var(--safe-bot));
+    display: flex;
+    z-index: 10;
+  }
+  .nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    color: var(--text-3);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .nav-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .nav-btn.active { color: var(--acid); }
+
+  /* Install prompt */
+  .install-banner {
+    margin: 16px 20px;
+    padding: 14px;
+    background: var(--acid);
+    color: var(--bg);
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .install-banner.show { display: flex; }
+  .install-banner strong { font-weight: 800; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; display: block; }
+  .install-banner span { font-size: 11px; opacity: 0.8; }
+  .install-banner button { background: var(--bg); color: var(--acid); padding: 8px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .install-banner .close-x { background: none; color: var(--bg); padding: 4px 8px; font-size: 14px; }
+
+  /* Edit affordance */
+  .edit-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .edit-btn:active { background: var(--bg-3); }
+  .edit-btn.accent {
+    color: var(--acid);
+    border-color: var(--acid);
+  }
+
+  /* Modal sheet */
+  .sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 50;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .sheet-overlay.open {
+    display: block;
+    opacity: 1;
+  }
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    z-index: 51;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    max-height: 92vh;
+    overflow-y: auto;
+    padding-bottom: calc(20px + var(--safe-bot));
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin: 10px auto 0;
+  }
+  .sheet-head {
+    padding: 16px 20px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .sheet-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .sheet-close {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-3);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .sheet-body {
+    padding: 20px;
+  }
+  .sheet textarea {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    outline: none;
+    resize: vertical;
+    min-height: 220px;
+    -webkit-appearance: none;
+  }
+  .sheet textarea:focus { border-color: var(--acid); }
+  .sheet-mode-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border: 1px solid var(--line);
+  }
+  .sheet-mode-tabs button {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-2);
+  }
+  .sheet-mode-tabs button.on {
+    background: var(--acid);
+    color: var(--bg);
+  }
+  .sheet-row {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .sheet-row:last-child { border-bottom: none; }
+  .sheet-row label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .sheet-row input {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    -webkit-appearance: none;
+    text-align: right;
+  }
+  .sheet-row input:focus { border-color: var(--acid); }
+  .sheet-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .sheet-hint code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-2);
+    padding: 1px 4px;
+    color: var(--text-2);
+    font-size: 10px;
+  }
+  .sheet-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .sheet-section-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-3);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .quote-field, .bullet-field {
+    width: 100%;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    padding: 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    outline: none;
+    resize: vertical;
+    margin-bottom: 8px;
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+  .quote-field:focus, .bullet-field:focus { border-color: var(--acid); }
+  .bullet-list { display: flex; flex-direction: column; }
+  .bullet-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+  .bullet-row .bullet-field { margin-bottom: 0; flex: 1; }
+  .bullet-del {
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text-3);
+    border: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .btn-ghost {
+    width: 100%;
+    padding: 10px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-2);
+    border: 1px dashed var(--line);
+    margin-top: 6px;
+  }
+  .btn-ghost:active { background: var(--bg-2); }
+  .sheet-actions {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .sheet-actions .btn-primary { margin-top: 0; }
+  .sheet-actions .btn-secondary {
+    background: var(--bg-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    padding: 14px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  /* Decorative grain */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.015;
+    z-index: 100;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header class="top">
+  <div>
+    <div class="brand">Coaching Portal · 2026</div>
+    <div class="brand-name">Jamall</div>
+  </div>
+  <div class="week-tag">
+    <span>WK</span> <b id="wk-num">59</b><br>
+    <span id="today-date"></span>
+  </div>
+</header>
+
+<div id="install-banner" class="install-banner">
+  <div>
+    <strong>Install app</strong>
+    <span>Add to home screen for quick access</span>
+  </div>
+  <div>
+    <button onclick="doInstall()">Install</button>
+    <button class="close-x" onclick="hideBanner()">✕</button>
+  </div>
+</div>
+
+<main>
+
+<!-- ============ DASHBOARD ============ -->
+<div id="view-dash" class="view active">
+
+  <section class="hero">
+    <div class="hero-label">Current weight</div>
+    <div class="hero-weight">
+      <div class="hero-num" id="hero-kg">120.6</div>
+      <div class="hero-unit" id="hero-unit">kg</div>
+      <div class="unit-toggle" style="margin-left:auto;align-self:flex-end;">
+        <button id="unit-kg" class="on" onclick="setUnit('kg')">KG</button>
+        <button id="unit-lb" onclick="setUnit('lb')">LB</button>
+      </div>
+    </div>
+    <div class="hero-sub">
+      <span class="change" id="hero-change">−0.2 this wk</span>
+      <span class="divider">/</span>
+      <span id="hero-total">−15.6 total</span>
+    </div>
+  </section>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Start</div>
+      <div class="stat-value"><span id="s-start">136.2</span><small id="s-start-u">kg</small></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Lowest</div>
+      <div class="stat-value"><span id="s-low">113.9</span><small id="s-low-u">kg</small></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">To target</div>
+      <div class="stat-value"><span id="s-togo">5.6</span><small id="s-togo-u">kg</small></div>
+    </div>
+  </div>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Weight trend</div>
+      <div class="block-meta" id="chart-range">59 weeks</div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="chart-axis">
+      <span id="ax-start">Mar '25</span>
+      <span id="ax-end">Apr '26</span>
+    </div>
+    <div class="range-tabs">
+      <button onclick="setRange('4w', this)">4W</button>
+      <button onclick="setRange('12w', this)">12W</button>
+      <button onclick="setRange('6m', this)">6M</button>
+      <button class="active" onclick="setRange('all', this)">All</button>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Goals</div>
+      <div class="block-meta">Target track</div>
+    </div>
+    <div class="goals">
+      <div class="goal">
+        <div class="goal-row">
+          <div class="goal-name">End of April <span class="tag">118 kg</span></div>
+          <div class="goal-val" id="g1-val"><b>120.6</b> / 118.0 kg</div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="g1-bar" style="width:0%"></div></div>
+      </div>
+      <div class="goal">
+        <div class="goal-row">
+          <div class="goal-name">End of May <span class="tag">115 kg</span></div>
+          <div class="goal-val" id="g2-val"><b>120.6</b> / 115.0 kg</div>
+        </div>
+        <div class="bar"><div class="bar-fill blue" id="g2-bar" style="width:0%"></div></div>
+      </div>
+      <div class="goal">
+        <div class="goal-row">
+          <div class="goal-name">Lower-body change <span class="tag">110 kg</span></div>
+          <div class="goal-val" id="g3-val"><b>120.6</b> / 110.0 kg</div>
+        </div>
+        <div class="bar"><div class="bar-fill warm" id="g3-bar" style="width:0%"></div></div>
+      </div>
+      <div class="goal">
+        <div class="goal-row">
+          <div class="goal-name">Final goal <span class="tag">100 kg</span></div>
+          <div class="goal-val" id="g4-val"><b>120.6</b> / 100.0 kg</div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="g4-bar" style="width:0%; background: var(--text);"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">This week · coach notes</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="block-meta" id="notes-date">22/04/26</div>
+        <button class="edit-btn accent" onclick="openNotesSheet()">Edit</button>
+      </div>
+    </div>
+    <div class="coach-card">
+      <div class="coach-tag" id="notes-tag">▸ CHECK-IN HIGHLIGHTS</div>
+      <div class="coach-quote" id="notes-quote">"All training sessions completed, all cardio + steps done. Big win bro."</div>
+      <ul class="coach-list" id="notes-list">
+        <li>Diet not fully adherent over the weekend — takeaway Tuesday</li>
+        <li>Next work trip: aim for full adherence — prep week's food + mini fridge</li>
+        <li>Check sleep quality vs quantity + coffee timing on wake</li>
+        <li>Food, training, cardio all held — changes next week back home</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Recent weigh-ins</div>
+      <div class="block-meta">Last 6 weeks</div>
+    </div>
+    <div class="log-list" id="recent-list"></div>
+  </section>
+
+</div>
+
+<!-- ============ LOG ============ -->
+<div id="view-log" class="view">
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Log weigh-in</div>
+      <div class="block-meta">Fasted</div>
+    </div>
+    <div class="log-form">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="log-date">
+      </div>
+      <div class="field">
+        <label>Weight (<span id="log-unit">kg</span>)</label>
+        <input type="number" id="log-weight" step="0.1" placeholder="120.6" inputmode="decimal">
+      </div>
+      <button class="btn-primary" onclick="saveWeighIn()">Save entry</button>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Full history</div>
+      <div class="block-meta" id="total-count">— entries</div>
+    </div>
+    <div class="log-list" id="full-list"></div>
+  </section>
+
+</div>
+
+<!-- ============ MACROS / DIET ============ -->
+<div id="view-diet" class="view">
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Daily macros</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="block-meta" id="tdee-label">TDEE ~3300</div>
+        <button class="edit-btn accent" onclick="openMacrosSheet()">Edit</button>
+      </div>
+    </div>
+
+    <div class="macro-card">
+      <div class="macro-head">
+        <div class="macro-title">Training day</div>
+        <div class="macro-kcal"><span id="mac-t-kcal">2807</span><small>kcal</small></div>
+      </div>
+      <div class="macro-grid">
+        <div class="macro-cell">
+          <div class="macro-cell-label">Protein</div>
+          <div class="macro-cell-val"><span id="mac-t-p">231</span><small>g</small></div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-label">Carbs</div>
+          <div class="macro-cell-val"><span id="mac-t-c">351</span><small>g</small></div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-label">Fats</div>
+          <div class="macro-cell-val"><span id="mac-t-f">51</span><small>g</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="macro-card rest">
+      <div class="macro-head">
+        <div class="macro-title">Rest day</div>
+        <div class="macro-kcal"><span id="mac-r-kcal">2630</span><small>kcal</small></div>
+      </div>
+      <div class="macro-grid">
+        <div class="macro-cell">
+          <div class="macro-cell-label">Protein</div>
+          <div class="macro-cell-val"><span id="mac-r-p">229</span><small>g</small></div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-label">Carbs</div>
+          <div class="macro-cell-val"><span id="mac-r-c">287</span><small>g</small></div>
+        </div>
+        <div class="macro-cell">
+          <div class="macro-cell-label">Fats</div>
+          <div class="macro-cell-val"><span id="mac-r-f">62</span><small>g</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Training day meals</div>
+      <div class="block-meta">5 meals · 6L water</div>
+    </div>
+
+    <div class="meal">
+      <div class="meal-head">
+        <div class="meal-name">Meal 1 · Pre-workout</div>
+        <div class="meal-time">18:30</div>
+      </div>
+      <div class="food-row"><span>Jasons sourdough white</span><span>140g</span></div>
+      <div class="food-row"><span>Egg (medium)</span><span>×3</span></div>
+      <div class="food-row"><span>Banana</span><span>×1</span></div>
+    </div>
+
+    <div class="meal">
+      <div class="meal-head">
+        <div class="meal-name">Meal 2 · Post-workout</div>
+        <div class="meal-time">22:00</div>
+      </div>
+      <div class="food-row"><span>Chicken breast</span><span>220g</span></div>
+      <div class="food-row"><span>Jasmine rice (dry)</span><span>90g</span></div>
+      <div class="food-row"><span>Pineapple</span><span>100g</span></div>
+      <div class="food-row"><span>White onion</span><span>40g</span></div>
+      <div class="food-row"><span>Mixed peppers</span><span>60g</span></div>
+    </div>
+
+    <div class="meal">
+      <div class="meal-head">
+        <div class="meal-name">Meal 3</div>
+        <div class="meal-time">01:30</div>
+      </div>
+      <div class="food-row"><span>Chicken breast</span><span>220g</span></div>
+      <div class="food-row"><span>White potato</span><span>250g</span></div>
+      <div class="food-row"><span>Broccoli</span><span>80g</span></div>
+      <div class="food-row"><span>Olive oil</span><span>10g</span></div>
+    </div>
+
+    <div class="meal">
+      <div class="meal-head">
+        <div class="meal-name">Meal 4</div>
+        <div class="meal-time">04:30</div>
+      </div>
+      <div class="food-row"><span>Arla Skyr 0%</span><span>300g</span></div>
+      <div class="food-row"><span>Coco Pops</span><span>15g</span></div>
+      <div class="food-row"><span>Blueberries</span><span>100g</span></div>
+      <div class="food-row"><span>Strawberries</span><span>100g</span></div>
+      <div class="food-row"><span>Desiccated coconut</span><span>10g</span></div>
+    </div>
+
+    <div class="meal">
+      <div class="meal-head">
+        <div class="meal-name">Meal 5</div>
+        <div class="meal-time">08:00</div>
+      </div>
+      <div class="food-row"><span>Oats</span><span>90g</span></div>
+      <div class="food-row"><span>Per4rm whey</span><span>35g</span></div>
+      <div class="food-row"><span>Lindt 70% dark chocolate</span><span>10g</span></div>
+      <div class="food-row"><span>Honey</span><span>10g</span></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Supplements</div>
+      <div class="block-meta">7 stack</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Ashwagandha</div>
+      <div class="supp-dose">500mg</div>
+      <div class="supp-when">PRE BED</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Vit D3 + K2</div>
+      <div class="supp-dose">3000iu</div>
+      <div class="supp-when">WAKE</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Electrolytes</div>
+      <div class="supp-dose">2 servings</div>
+      <div class="supp-when">WAKE · INTRA</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Creatine mono</div>
+      <div class="supp-dose">5g</div>
+      <div class="supp-when">DAILY</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Support Max Neuro PM</div>
+      <div class="supp-dose">1 serving</div>
+      <div class="supp-when">45M PRE BED</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Magnesium bisglycinate</div>
+      <div class="supp-dose">375mg</div>
+      <div class="supp-when">PRE BED</div>
+    </div>
+    <div class="supp-row">
+      <div class="supp-name">Multivitamin</div>
+      <div class="supp-dose">1 serving</div>
+      <div class="supp-when">WAKE</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ TRAINING ============ -->
+<div id="view-train" class="view">
+
+  <section class="block">
+    <div class="block-head">
+      <div class="block-title">Training split</div>
+      <div class="block-meta">4-day</div>
+    </div>
+    <div class="split-head" id="split-head"></div>
+    <div id="workout-container"></div>
+  </section>
+
+</div>
+
+</main>
+
+<!-- ============ NOTES EDIT SHEET ============ -->
+<div id="notes-overlay" class="sheet-overlay" onclick="closeNotesSheet()"></div>
+<div id="notes-sheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title">Update coach notes</div>
+    <button class="sheet-close" onclick="closeNotesSheet()">Close</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-mode-tabs">
+      <button id="notes-mode-paste" class="on" onclick="setNotesMode('paste')">Paste check-in</button>
+      <button id="notes-mode-edit" onclick="setNotesMode('edit')">Edit manually</button>
+    </div>
+
+    <!-- Paste mode -->
+    <div id="notes-paste-pane">
+      <div class="sheet-hint">
+        Paste the whole check-in message from your coach. The app pulls out the highlight quote and bullet points automatically.
+      </div>
+      <textarea id="notes-paste-input" placeholder="e.g. Right big dog, hows it hanging&#10;&#10;- Diet not too adherant over the weekend&#10;- All training sessions completed&#10;- Let's talk about sleep..."></textarea>
+      <div class="sheet-actions">
+        <button class="btn-secondary" onclick="previewNotesPaste()">Preview</button>
+        <button class="btn-primary" onclick="saveNotesPaste()">Save notes</button>
+      </div>
+      <div class="sheet-hint" style="margin-top:12px;">
+        <b style="color:var(--text-2);">Tip:</b> Lines starting with <code>-</code> or <code>•</code> become bullets. The first normal line becomes the headline quote.
+      </div>
+    </div>
+
+    <!-- Manual edit mode -->
+    <div id="notes-edit-pane" style="display:none;">
+      <div class="sheet-section-title">Check-in date</div>
+      <input type="date" id="notes-edit-date" style="width:100%; background:var(--bg-2); border:1px solid var(--line); padding:12px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; margin-bottom:16px; -webkit-appearance:none; border-radius:0;">
+
+      <div class="sheet-section-title">Headline quote</div>
+      <textarea class="quote-field" id="notes-edit-quote" rows="2" placeholder="e.g. All sessions done. Big win bro."></textarea>
+
+      <div class="sheet-section-title" style="margin-top:8px;">Bullet points</div>
+      <div class="bullet-list" id="notes-edit-bullets"></div>
+      <button class="btn-ghost" onclick="addBullet()">+ Add bullet</button>
+
+      <div class="sheet-actions">
+        <button class="btn-secondary" onclick="closeNotesSheet()">Cancel</button>
+        <button class="btn-primary" onclick="saveNotesEdit()">Save notes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LIFT EDIT SHEET ============ -->
+<div id="lift-overlay" class="sheet-overlay" onclick="closeLiftSheet()"></div>
+<div id="lift-sheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title" id="lift-title">Log lift</div>
+    <button class="sheet-close" onclick="closeLiftSheet()">Close</button>
+  </div>
+  <div class="sheet-body">
+    <div class="block-meta" id="lift-sets-display" style="margin-bottom: 14px; color: var(--text-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.05em; white-space: pre-line;"></div>
+
+    <div class="sheet-row" style="grid-template-columns: 1fr 160px;">
+      <label>Weight</label>
+      <div style="display: flex; gap: 6px; align-items: stretch; justify-content: flex-end;">
+        <input type="number" id="lift-weight" inputmode="decimal" step="0.5" placeholder="0" style="width: 84px; text-align: right; padding-right: 10px;">
+        <select id="lift-unit" style="background: var(--bg-2); border: 1px solid var(--line); color: var(--text); padding: 0 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; -webkit-appearance: none; appearance: none; border-radius: 0; width: 64px; text-align: center; text-align-last: center;">
+          <option value="kg">kg</option>
+          <option value="lb">lb</option>
+          <option value="plate">plate</option>
+        </select>
+      </div>
+    </div>
+    <div class="sheet-row">
+      <label>Reps</label>
+      <input type="number" id="lift-reps" inputmode="numeric" placeholder="0">
+    </div>
+
+    <div class="sheet-section">
+      <div class="sheet-section-title">Notes (optional)</div>
+      <textarea class="quote-field" id="lift-notes" rows="3" placeholder="e.g. felt strong, form locked in, last set grind"></textarea>
+    </div>
+
+    <div class="sheet-actions">
+      <button class="btn-secondary" onclick="resetLift()">Reset</button>
+      <button class="btn-primary" onclick="saveLift()">Save PR</button>
+    </div>
+  </div>
+</div>
+<div id="macros-overlay" class="sheet-overlay" onclick="closeMacrosSheet()"></div>
+<div id="macros-sheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <div class="sheet-title">Update macros</div>
+    <button class="sheet-close" onclick="closeMacrosSheet()">Close</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-mode-tabs">
+      <button id="macros-mode-paste" class="on" onclick="setMacrosMode('paste')">Paste diet plan</button>
+      <button id="macros-mode-edit" onclick="setMacrosMode('edit')">Edit manually</button>
+    </div>
+
+    <!-- Paste mode -->
+    <div id="macros-paste-pane">
+      <div class="sheet-hint">
+        Paste the macro block from your coach's message. The app picks out protein, carbs, fats for training and rest days automatically.
+      </div>
+      <textarea id="macros-paste-input" placeholder="e.g.&#10;Training day&#10;Protein 231  Carbs 351  Fats 51&#10;&#10;Rest day&#10;Protein 229  Carbs 287  Fats 62&#10;&#10;TDEE 3300"></textarea>
+      <div class="sheet-actions">
+        <button class="btn-secondary" onclick="previewMacrosPaste()">Preview</button>
+        <button class="btn-primary" onclick="saveMacrosPaste()">Save macros</button>
+      </div>
+      <div class="sheet-hint" style="margin-top:12px;">
+        <b style="color:var(--text-2);">Tip:</b> Calories auto-calculate from protein×4 + carbs×4 + fats×9. Put "training" and "rest" as section headers somewhere in the text.
+      </div>
+    </div>
+
+    <!-- Manual edit mode -->
+    <div id="macros-edit-pane" style="display:none;">
+      <div class="sheet-section-title">Training day</div>
+      <div class="sheet-row">
+        <label>Protein</label>
+        <input type="number" id="edit-t-p" inputmode="numeric">
+      </div>
+      <div class="sheet-row">
+        <label>Carbs</label>
+        <input type="number" id="edit-t-c" inputmode="numeric">
+      </div>
+      <div class="sheet-row">
+        <label>Fats</label>
+        <input type="number" id="edit-t-f" inputmode="numeric">
+      </div>
+
+      <div class="sheet-section">
+        <div class="sheet-section-title">Rest day</div>
+        <div class="sheet-row">
+          <label>Protein</label>
+          <input type="number" id="edit-r-p" inputmode="numeric">
+        </div>
+        <div class="sheet-row">
+          <label>Carbs</label>
+          <input type="number" id="edit-r-c" inputmode="numeric">
+        </div>
+        <div class="sheet-row">
+          <label>Fats</label>
+          <input type="number" id="edit-r-f" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="sheet-section">
+        <div class="sheet-section-title">TDEE estimate (optional)</div>
+        <div class="sheet-row">
+          <label>kcal</label>
+          <input type="number" id="edit-tdee" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="sheet-hint" style="margin-top:14px;">
+        Calories auto-calculate from P×4 + C×4 + F×9. You'll see the totals update on the main screen.
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn-secondary" onclick="closeMacrosSheet()">Cancel</button>
+        <button class="btn-primary" onclick="saveMacrosEdit()">Save macros</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom">
+  <button class="nav-btn active" data-view="dash" onclick="showView('dash', this)">
+    <svg viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+    Home
+  </button>
+  <button class="nav-btn" data-view="log" onclick="showView('log', this)">
+    <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="0"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>
+    Log
+  </button>
+  <button class="nav-btn" data-view="diet" onclick="showView('diet', this)">
+    <svg viewBox="0 0 24 24"><path d="M12 3v18M6 7l6-4 6 4M6 7v6a6 6 0 0012 0V7"/></svg>
+    Diet
+  </button>
+  <button class="nav-btn" data-view="train" onclick="showView('train', this)">
+    <svg viewBox="0 0 24 24"><path d="M4 12h2M18 12h2M7 8h2v8H7zM15 8h2v8h-2zM9 12h6"/></svg>
+    Train
+  </button>
+</nav>
+
+<script>
+// === DATA ===
+const SEED_DATA = [{"week":1,"date":"2025-03-12","weight_lbs":300.2,"change_lbs":null},{"week":2,"date":"2025-03-19","weight_lbs":298.0,"change_lbs":-2.2},{"week":3,"date":"2025-03-26","weight_lbs":297.4,"change_lbs":-0.55},{"week":4,"date":"2025-04-02","weight_lbs":296.0,"change_lbs":-1.42},{"week":5,"date":"2025-04-09","weight_lbs":293.8,"change_lbs":-2.23},{"week":6,"date":"2025-04-16","weight_lbs":290.8,"change_lbs":-3.05},{"week":7,"date":"2025-04-23","weight_lbs":287.1,"change_lbs":-3.62},{"week":8,"date":"2025-04-30","weight_lbs":286.6,"change_lbs":-0.57},{"week":9,"date":"2025-05-07","weight_lbs":287.9,"change_lbs":1.3},{"week":10,"date":"2025-05-14","weight_lbs":284.8,"change_lbs":-3.07},{"week":11,"date":"2025-05-21","weight_lbs":283.8,"change_lbs":-1.0},{"week":12,"date":"2025-05-28","weight_lbs":282.5,"change_lbs":-1.27},{"week":13,"date":"2025-06-04","weight_lbs":280.8,"change_lbs":-1.77},{"week":14,"date":"2025-06-11","weight_lbs":279.7,"change_lbs":-1.07},{"week":15,"date":"2025-06-18","weight_lbs":278.4,"change_lbs":-1.3},{"week":17,"date":"2025-07-02","weight_lbs":278.4,"change_lbs":null},{"week":18,"date":"2025-07-09","weight_lbs":275.1,"change_lbs":-3.32},{"week":19,"date":"2025-07-16","weight_lbs":272.9,"change_lbs":-2.18},{"week":20,"date":"2025-07-23","weight_lbs":269.2,"change_lbs":-3.67},{"week":21,"date":"2025-07-30","weight_lbs":265.6,"change_lbs":-3.63},{"week":22,"date":"2025-08-06","weight_lbs":263.6,"change_lbs":-1.96},{"week":23,"date":"2025-08-13","weight_lbs":260.1,"change_lbs":-3.52},{"week":24,"date":"2025-08-20","weight_lbs":259.3,"change_lbs":-0.8},{"week":25,"date":"2025-08-27","weight_lbs":257.4,"change_lbs":-1.88},{"week":26,"date":"2025-09-03","weight_lbs":256.4,"change_lbs":-1.05},{"week":27,"date":"2025-09-10","weight_lbs":255.2,"change_lbs":-1.25},{"week":28,"date":"2025-09-17","weight_lbs":253.8,"change_lbs":-1.3},{"week":29,"date":"2025-09-24","weight_lbs":251.2,"change_lbs":-2.65},{"week":30,"date":"2025-10-01","weight_lbs":256.4,"change_lbs":5.2},{"week":31,"date":"2025-10-08","weight_lbs":263.5,"change_lbs":7.1},{"week":32,"date":"2025-10-15","weight_lbs":266.7,"change_lbs":3.2},{"week":34,"date":"2025-10-29","weight_lbs":264.7,"change_lbs":null},{"week":35,"date":"2025-11-05","weight_lbs":271.3,"change_lbs":6.6},{"week":36,"date":"2025-11-12","weight_lbs":277.8,"change_lbs":6.45},{"week":37,"date":"2025-11-19","weight_lbs":276.3,"change_lbs":-1.46},{"week":38,"date":"2025-11-26","weight_lbs":273.4,"change_lbs":-2.89},{"week":39,"date":"2025-12-03","weight_lbs":271.6,"change_lbs":-1.77},{"week":40,"date":"2025-12-10","weight_lbs":273.9,"change_lbs":2.22},{"week":41,"date":"2025-12-17","weight_lbs":272.9,"change_lbs":-0.9},{"week":42,"date":"2025-12-24","weight_lbs":272.0,"change_lbs":-0.92},{"week":43,"date":"2025-12-31","weight_lbs":269.8,"change_lbs":-2.2},{"week":44,"date":"2026-01-07","weight_lbs":271.9,"change_lbs":2.07},{"week":45,"date":"2026-01-14","weight_lbs":275.2,"change_lbs":3.35},{"week":46,"date":"2026-01-21","weight_lbs":272.4,"change_lbs":-2.85},{"week":47,"date":"2026-01-28","weight_lbs":271.4,"change_lbs":-1.05},{"week":50,"date":"2026-02-18","weight_lbs":284.3,"change_lbs":null},{"week":51,"date":"2026-02-25","weight_lbs":281.7,"change_lbs":-2.57},{"week":52,"date":"2026-03-04","weight_lbs":276.9,"change_lbs":-4.83},{"week":53,"date":"2026-03-11","weight_lbs":274.6,"change_lbs":-2.3},{"week":54,"date":"2026-03-18","weight_lbs":273.6,"change_lbs":-1.05},{"week":55,"date":"2026-03-25","weight_lbs":274.2,"change_lbs":0.65},{"week":56,"date":"2026-04-01","weight_lbs":271.0,"change_lbs":-3.16},{"week":57,"date":"2026-04-08","weight_lbs":268.4,"change_lbs":-2.62},{"week":58,"date":"2026-04-15","weight_lbs":266.3,"change_lbs":-2.12},{"week":59,"date":"2026-04-22","weight_lbs":265.9,"change_lbs":-0.4}];
+
+const LB_TO_KG = 0.453592;
+const WEEK_1_START = new Date('2025-03-12');
+
+let state = {
+  unit: localStorage.getItem('jamall.unit') || 'kg',
+  range: 'all',
+  data: null,
+};
+
+function loadData() {
+  const stored = localStorage.getItem('jamall.data');
+  if (stored) {
+    try { return JSON.parse(stored); } catch(e) {}
+  }
+  return [...SEED_DATA];
+}
+function saveData() {
+  localStorage.setItem('jamall.data', JSON.stringify(state.data));
+}
+
+state.data = loadData();
+
+// === NOTES & MACROS STATE ===
+const DEFAULT_NOTES = {
+  date: '2026-04-22',
+  quote: 'All training sessions completed, all cardio + steps done. Big win bro.',
+  bullets: [
+    'Diet not fully adherent over the weekend — takeaway Tuesday',
+    "Next work trip: aim for full adherence — prep week's food + mini fridge",
+    'Check sleep quality vs quantity + coffee timing on wake',
+    'Food, training, cardio all held — changes next week back home'
+  ]
+};
+const DEFAULT_MACROS = {
+  training: { p: 231, c: 351, f: 51 },
+  rest: { p: 229, c: 287, f: 62 },
+  tdee: 3300
+};
+
+function loadNotes() {
+  try { return JSON.parse(localStorage.getItem('jamall.notes')) || DEFAULT_NOTES; }
+  catch(e) { return DEFAULT_NOTES; }
+}
+function saveNotesStore() { localStorage.setItem('jamall.notes', JSON.stringify(state.notes)); }
+function loadMacros() {
+  try { return JSON.parse(localStorage.getItem('jamall.macros')) || DEFAULT_MACROS; }
+  catch(e) { return DEFAULT_MACROS; }
+}
+function saveMacrosStore() { localStorage.setItem('jamall.macros', JSON.stringify(state.macros)); }
+
+state.notes = loadNotes();
+state.macros = loadMacros();
+
+// === UNIT HANDLING ===
+function convert(lb) { return state.unit === 'kg' ? lb * LB_TO_KG : lb; }
+function unitLabel() { return state.unit; }
+function fmt(lb, dp = 1) { return convert(lb).toFixed(dp); }
+
+function setUnit(u) {
+  state.unit = u;
+  localStorage.setItem('jamall.unit', u);
+  document.getElementById('unit-kg').classList.toggle('on', u === 'kg');
+  document.getElementById('unit-lb').classList.toggle('on', u === 'lb');
+  document.getElementById('log-unit').textContent = u;
+  render();
+}
+
+// === RENDER DASHBOARD ===
+function render() {
+  const d = state.data;
+  if (!d.length) return;
+  const latest = d[d.length - 1];
+  const prev = d[d.length - 2];
+  const startWeight = d[0].weight_lbs;
+  const lowest = Math.min(...d.map(x => x.weight_lbs));
+
+  const u = unitLabel();
+  document.getElementById('hero-kg').textContent = fmt(latest.weight_lbs);
+  document.getElementById('hero-unit').textContent = u;
+
+  const wkChange = prev ? (latest.weight_lbs - prev.weight_lbs) : 0;
+  const totalChange = latest.weight_lbs - startWeight;
+  const heroChange = document.getElementById('hero-change');
+  const sign = wkChange <= 0 ? '−' : '+';
+  heroChange.textContent = `${sign}${Math.abs(convert(wkChange)).toFixed(1)} this wk`;
+  heroChange.classList.toggle('up', wkChange > 0);
+
+  const totalSign = totalChange <= 0 ? '−' : '+';
+  document.getElementById('hero-total').textContent = `${totalSign}${Math.abs(convert(totalChange)).toFixed(1)} total`;
+
+  document.getElementById('s-start').textContent = fmt(startWeight);
+  document.getElementById('s-start-u').textContent = u;
+  document.getElementById('s-low').textContent = fmt(lowest);
+  document.getElementById('s-low-u').textContent = u;
+
+  // Target: 115kg in kg mode, 253.5lb in lb mode
+  const targetKg = 100;
+  const currentKg = latest.weight_lbs * LB_TO_KG;
+  const togoKg = Math.max(0, currentKg - targetKg);
+  document.getElementById('s-togo').textContent = (state.unit === 'kg' ? togoKg : togoKg / LB_TO_KG).toFixed(1);
+  document.getElementById('s-togo-u').textContent = u;
+
+  // Goals - always in kg math, but display in current unit
+  renderGoals(currentKg);
+
+  // Week tag - ISO week number of the current year
+  const today = new Date();
+  // ISO week: Thursday-based. Copy date, set to Thursday of current week,
+  // then calculate week number from Jan 1.
+  const weekDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  const dayNum = (weekDate.getUTCDay() + 6) % 7; // Mon=0..Sun=6
+  weekDate.setUTCDate(weekDate.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(weekDate.getUTCFullYear(), 0, 4));
+  const currentWeek = 1 + Math.round(((weekDate - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  document.getElementById('wk-num').textContent = currentWeek;
+
+  // Today date: "THU 23 APR"
+  const dayShort = today.toLocaleDateString('en-GB', {weekday: 'short'}).toUpperCase();
+  const dateShort = today.toLocaleDateString('en-GB', {day:'2-digit',month:'short'}).toUpperCase();
+  document.getElementById('today-date').textContent = `${dayShort} ${dateShort}`;
+
+  // Recent list
+  renderLogList('recent-list', d.slice(-6).reverse());
+  renderLogList('full-list', [...d].reverse());
+  document.getElementById('total-count').textContent = `${d.length} entries`;
+
+  // Chart
+  drawChart();
+}
+
+function renderGoals(currentKg) {
+  const goals = [
+    { el: 'g1', target: 118, start: 125 }, // april
+    { el: 'g2', target: 115, start: 125 }, // may
+    { el: 'g3', target: 110, start: 125 }, // leg changes
+    { el: 'g4', target: 100, start: 125 }, // final goal
+  ];
+  const unit = unitLabel();
+  const conv = v => (state.unit === 'kg' ? v : v / LB_TO_KG).toFixed(1);
+
+  goals.forEach(g => {
+    const valEl = document.getElementById(g.el + '-val');
+    if (valEl) {
+      valEl.innerHTML = `<b>${conv(currentKg)}</b> / ${conv(g.target)} ${unit}`;
+    }
+    // Progress: from start (125) to target
+    const range = g.start - g.target;
+    const progress = Math.max(0, Math.min(100, ((g.start - currentKg) / range) * 100));
+    document.getElementById(g.el + '-bar').style.width = progress + '%';
+  });
+}
+
+function renderLogList(elId, rows) {
+  const el = document.getElementById(elId);
+  el.innerHTML = rows.map(r => {
+    const chg = r.change_lbs;
+    const chgClass = chg == null ? 'flat' : (chg < -0.1 ? 'down' : (chg > 0.1 ? 'up' : 'flat'));
+    const chgVal = chg == null ? '—' : (chg <= 0 ? '−' : '+') + Math.abs(convert(chg)).toFixed(1);
+    const date = new Date(r.date);
+    const dateStr = date.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'2-digit'}).toUpperCase();
+    return `
+      <div class="log-row">
+        <div class="log-wk">WK ${r.week}</div>
+        <div class="log-date">${dateStr}</div>
+        <div class="log-wt">${fmt(r.weight_lbs)} ${unitLabel()}</div>
+        <div class="log-chg ${chgClass}">${chgVal}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === CHART ===
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  let data = [...state.data];
+  if (state.range === '4w') data = data.slice(-4);
+  else if (state.range === '12w') data = data.slice(-12);
+  else if (state.range === '6m') data = data.slice(-26);
+
+  if (data.length < 2) return;
+
+  const vals = data.map(d => d.weight_lbs);
+  const min = Math.min(...vals) - 2;
+  const max = Math.max(...vals) + 2;
+  const pad = { l: 12, r: 12, t: 12, b: 12 };
+
+  const pts = data.map((d, i) => ({
+    x: pad.l + (i / (data.length - 1)) * (w - pad.l - pad.r),
+    y: pad.t + (1 - (d.weight_lbs - min) / (max - min)) * (h - pad.t - pad.b),
+    v: d.weight_lbs
+  }));
+
+  // Grid
+  ctx.strokeStyle = '#1f1f1f';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  for (let i = 1; i < 4; i++) {
+    const y = pad.t + (i / 4) * (h - pad.t - pad.b);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(w - pad.r, y);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Area fill
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(212, 255, 63, 0.25)');
+  grad.addColorStop(1, 'rgba(212, 255, 63, 0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, h - pad.b);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, h - pad.b);
+  ctx.closePath();
+  ctx.fill();
+
+  // Line
+  ctx.strokeStyle = '#d4ff3f';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  // Last point dot
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = '#d4ff3f';
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Axis labels
+  const startD = new Date(data[0].date);
+  const endD = new Date(data[data.length-1].date);
+  const f = d => d.toLocaleDateString('en-GB', {month:'short', year:'2-digit'}).replace(' ', " '");
+  document.getElementById('ax-start').textContent = f(startD);
+  document.getElementById('ax-end').textContent = f(endD);
+  document.getElementById('chart-range').textContent = `${data.length} weeks`;
+}
+
+function setRange(r, btn) {
+  state.range = r;
+  document.querySelectorAll('.range-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  drawChart();
+}
+
+// === LOG FORM ===
+function saveWeighIn() {
+  const dateStr = document.getElementById('log-date').value;
+  const weight = parseFloat(document.getElementById('log-weight').value);
+  if (!dateStr || isNaN(weight)) {
+    alert('Enter date and weight');
+    return;
+  }
+  const weightLbs = state.unit === 'kg' ? weight / LB_TO_KG : weight;
+  const entryDate = new Date(dateStr);
+  const weekNum = Math.floor((entryDate - WEEK_1_START) / (7 * 24 * 60 * 60 * 1000)) + 1;
+
+  // Remove existing entry for this week if any
+  state.data = state.data.filter(d => d.week !== weekNum);
+
+  const prev = state.data.length ? state.data[state.data.length - 1] : null;
+  const change = prev ? weightLbs - prev.weight_lbs : null;
+
+  state.data.push({
+    week: weekNum,
+    date: dateStr,
+    weight_lbs: Math.round(weightLbs * 10) / 10,
+    change_lbs: change !== null ? Math.round(change * 100) / 100 : null
+  });
+  state.data.sort((a, b) => a.week - b.week);
+  saveData();
+  document.getElementById('log-weight').value = '';
+  render();
+  showView('dash', document.querySelector('[data-view="dash"]'));
+}
+
+// === NAV ===
+function showView(v, btn) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+  if (v === 'dash') drawChart();
+}
+
+// === TRAINING ===
+const SPLIT = [
+  { day: 'SUN', type: 'Rest', train: false },
+  { day: 'MON', type: 'Full Body', train: true },
+  { day: 'TUE', type: 'Rest', train: false },
+  { day: 'WED', type: 'Upper', train: true },
+  { day: 'THU', type: 'Rest', train: false },
+  { day: 'FRI', type: 'Legs', train: true },
+  { day: 'SAT', type: 'Arms+Delts', train: true },
+];
+
+const WORKOUTS = {
+  'Full Body': [
+    { id: 'fb1', name: 'Standing calf press', sets: '1×12-15\n1×15-20', defaultPr: { weight: 110, unit: 'kg', reps: 11, notes: '' } },
+    { id: 'fb2', name: 'Lying leg curl', sets: '2×8-12\n1×12-15', defaultPr: { weight: 64, unit: 'kg', reps: 9, notes: '' } },
+    { id: 'fb3', name: 'Leg press', sets: '1×6-8\n1×10-15', defaultPr: { weight: 210, unit: 'kg', reps: 9, notes: '' } },
+    { id: 'fb4', name: 'Leg extension', sets: '1×8-12\n1×12-15', defaultPr: { weight: null, unit: 'plate', reps: 9, notes: 'Plate 6' } },
+    { id: 'fb5', name: 'Machine seated side raise', sets: '1×8-10\n2×12-15', defaultPr: { weight: 32, unit: 'kg', reps: 13, notes: '' } },
+    { id: 'fb6', name: 'Incline hammer strength press', sets: '2×8-12\n1×12-15', defaultPr: { weight: 50, unit: 'kg', reps: 6, notes: '' } },
+    { id: 'fb7', name: 'Wide grip pulldown', sets: '2×10-15\n1×8-12', defaultPr: { weight: 75, unit: 'kg', reps: 7, notes: '' } },
+    { id: 'fb8', name: 'Underhand pulldown', sets: '1×8-12\n2×12-15', defaultPr: { weight: 75, unit: 'kg', reps: 6, notes: '' } },
+  ],
+  'Upper': [
+    { id: 'up1', name: 'Core · cable crunches', sets: '3×10-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Elbows → feet' } },
+    { id: 'up2', name: 'DB seated side raise', sets: '1×8-12\n2×12-15', defaultPr: { weight: 12, unit: 'kg', reps: 10, notes: '' } },
+    { id: 'up3', name: 'Low incline smith press', sets: '1×8-12\n2×10-15', defaultPr: { weight: 25, unit: 'kg', reps: 12, notes: '' } },
+    { id: 'up4', name: 'Pec deck chest fly', sets: '1×8-12\n2×12-15', defaultPr: { weight: 79, unit: 'kg', reps: null, notes: '' } },
+    { id: 'up5', name: 'Semi-underhand pulldown', sets: '2×8-12\n1×12-15', defaultPr: { weight: 73, unit: 'kg', reps: 8, notes: '' } },
+    { id: 'up6', name: 'Wide grip cable row', sets: '2×8-12\n1×12-15', defaultPr: { weight: 66, unit: 'kg', reps: 8, notes: '' } },
+    { id: 'up7', name: 'Behind body cable curls', sets: '2×10-12\n1×12-15', defaultPr: { weight: 21, unit: 'kg', reps: 7, notes: '' } },
+    { id: 'up8', name: 'Rope pushdown', sets: '1×10-12\n1×15-20', defaultPr: { weight: 17, unit: 'kg', reps: 10, notes: '' } },
+  ],
+  'Legs': [
+    { id: 'lg1', name: 'Seated calf press', sets: '2×12-15\n1×15-20', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Hip-width, full ROM' } },
+    { id: 'lg2', name: 'Adductor', sets: '2×8-12\n1×12-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Drive knees together' } },
+    { id: 'lg3', name: 'Seated leg curl', sets: '2×8-12\n1×12-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Hard contractions' } },
+    { id: 'lg4', name: 'Hack squat', sets: '1×8-12\n1×12-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: '3s eccentric · 1s pause' } },
+    { id: 'lg5', name: 'Leg press', sets: '1×8-12\n1×10-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Hip-width, toes out' } },
+    { id: 'lg6', name: 'Leg extension', sets: '1×8-12\n2×12-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: "Don't rush contractions" } },
+    { id: 'lg7', name: 'Kneeling hamstring curl', sets: '1×8-10\n2×12-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Heel to hip' } },
+  ],
+  'Arms+Delts': [
+    { id: 'ad1', name: 'Core · cable crunches', sets: '3×10-15', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Midsection engaged' } },
+    { id: 'ad2', name: 'DB standing side raise', sets: '2×8-10\n1×10-15', defaultPr: { weight: 10, unit: 'kg', reps: 13, notes: '' } },
+    { id: 'ad3', name: 'Smith super incline press', sets: '1×8-12\n1×12-15', defaultPr: { weight: 40, unit: 'kg', reps: 13, notes: '' } },
+    { id: 'ad4', name: 'Cable crucifix side raises', sets: '2×10-12\n1×15-20', defaultPr: { weight: 25, unit: 'kg', reps: 8, notes: '' } },
+    { id: 'ad5', name: 'Cross-body tricep ext', sets: '2×8-10\n1×12-15', defaultPr: { weight: 18, unit: 'kg', reps: 10, notes: '' } },
+    { id: 'ad6', name: 'DB seated side raise', sets: '2×8-12\n1×10-15', defaultPr: { weight: 12, unit: 'kg', reps: 12, notes: '' } },
+    { id: 'ad7', name: 'SUPERSET · cable OH ext', sets: '2×12-15\n1×8-12', defaultPr: { weight: 40, unit: 'kg', reps: 11, notes: '' } },
+    { id: 'ad8', name: 'SUPERSET · rope hammer curls', sets: 'Match above', defaultPr: { weight: null, unit: 'kg', reps: null, notes: 'Elbows forward' } },
+    { id: 'ad9', name: 'Elbow supported leg raises', sets: '3× failure', defaultPr: { weight: null, unit: 'reps', reps: 30, notes: '' } },
+  ]
+};
+
+// Load user-edited lifts from storage and merge with defaults
+function loadLifts() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('jamall.lifts')) || {};
+    return stored;
+  } catch(e) { return {}; }
+}
+function saveLiftsStore() {
+  localStorage.setItem('jamall.lifts', JSON.stringify(state.lifts));
+}
+state.lifts = loadLifts();
+
+// Get current PR for an exercise (user edit if present, otherwise default)
+function getPr(ex) {
+  return state.lifts[ex.id] || ex.defaultPr;
+}
+
+// Format a PR object as display string
+function formatPr(pr) {
+  if (!pr) return '';
+  const hasWeight = pr.weight != null;
+  const hasReps = pr.reps != null;
+  const hasNotes = pr.notes && pr.notes.trim();
+  const parts = [];
+
+  if (hasWeight) {
+    const unitStr = pr.unit === 'plate' ? '' : pr.unit;
+    parts.push(`${pr.weight}${unitStr}`);
+  }
+  if (hasReps) parts.push(`× ${pr.reps}`);
+  let main = parts.join(' ').trim();
+
+  // When there's no weight but there are notes, notes lead
+  if (!hasWeight && hasNotes) {
+    return main ? `${pr.notes} · ${main}` : pr.notes;
+  }
+  // Otherwise notes append
+  if (hasNotes && main) return `${main} · ${pr.notes}`;
+  if (hasNotes) return pr.notes;
+  return main || '—';
+}
+
+function renderTraining() {
+  const today = new Date();
+  const dayIdx = today.getDay(); // 0 = Sun
+  const head = document.getElementById('split-head');
+  head.innerHTML = SPLIT.map((d, i) => {
+    const classes = ['day-cell'];
+    if (d.train) classes.push('train');
+    if (i === dayIdx) classes.push('cur');
+    return `<div class="${classes.join(' ')}">
+      <div class="day-cell-day">${d.day}</div>
+      <div class="day-cell-type">${d.type.toUpperCase()}</div>
+    </div>`;
+  }).join('');
+
+  const container = document.getElementById('workout-container');
+  container.innerHTML = Object.entries(WORKOUTS).map(([title, exs]) => `
+    <div class="workout">
+      <div class="workout-title">${title}</div>
+      <div class="workout-sub">${exs.length} exercises · tap to log</div>
+      ${exs.map(e => {
+        const pr = getPr(e);
+        return `
+        <div class="ex ex-tappable" onclick="openLiftSheet('${e.id}')">
+          <div class="ex-head">
+            <div class="ex-name">${e.name}</div>
+            <div class="ex-sets">${e.sets}</div>
+          </div>
+          <div class="ex-pr">${escapeHtml(formatPr(pr))}</div>
+        </div>
+      `;}).join('')}
+    </div>
+  `).join('');
+}
+
+// === NOTES + MACROS RENDER ===
+function renderNotes() {
+  const n = state.notes;
+  // Date -> DD/MM/YY
+  if (n.date) {
+    const d = new Date(n.date);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    document.getElementById('notes-date').textContent = `${dd}/${mm}/${yy}`;
+  }
+  document.getElementById('notes-quote').textContent = n.quote ? `"${n.quote}"` : '';
+  const list = document.getElementById('notes-list');
+  list.innerHTML = (n.bullets || []).map(b => `<li>${escapeHtml(b)}</li>`).join('');
+}
+
+function renderMacros() {
+  const m = state.macros;
+  const tKcal = m.training.p * 4 + m.training.c * 4 + m.training.f * 9;
+  const rKcal = m.rest.p * 4 + m.rest.c * 4 + m.rest.f * 9;
+  document.getElementById('mac-t-p').textContent = m.training.p;
+  document.getElementById('mac-t-c').textContent = m.training.c;
+  document.getElementById('mac-t-f').textContent = m.training.f;
+  document.getElementById('mac-t-kcal').textContent = tKcal;
+  document.getElementById('mac-r-p').textContent = m.rest.p;
+  document.getElementById('mac-r-c').textContent = m.rest.c;
+  document.getElementById('mac-r-f').textContent = m.rest.f;
+  document.getElementById('mac-r-kcal').textContent = rKcal;
+  document.getElementById('tdee-label').textContent = `TDEE ~${m.tdee || 'n/a'}`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// === NOTES SHEET ===
+function openNotesSheet() {
+  populateNotesEditForm();
+  document.getElementById('notes-paste-input').value = '';
+  setNotesMode('paste');
+  document.getElementById('notes-overlay').classList.add('open');
+  document.getElementById('notes-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeNotesSheet() {
+  document.getElementById('notes-overlay').classList.remove('open');
+  document.getElementById('notes-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function setNotesMode(mode) {
+  document.getElementById('notes-mode-paste').classList.toggle('on', mode === 'paste');
+  document.getElementById('notes-mode-edit').classList.toggle('on', mode === 'edit');
+  document.getElementById('notes-paste-pane').style.display = mode === 'paste' ? 'block' : 'none';
+  document.getElementById('notes-edit-pane').style.display = mode === 'edit' ? 'block' : 'none';
+}
+
+function populateNotesEditForm() {
+  const n = state.notes;
+  document.getElementById('notes-edit-date').value = n.date || new Date().toISOString().split('T')[0];
+  document.getElementById('notes-edit-quote').value = n.quote || '';
+  const list = document.getElementById('notes-edit-bullets');
+  list.innerHTML = '';
+  (n.bullets || []).forEach(b => addBullet(b));
+  if (!list.children.length) addBullet('');
+}
+
+function addBullet(text = '') {
+  const list = document.getElementById('notes-edit-bullets');
+  const row = document.createElement('div');
+  row.className = 'bullet-row';
+  const ta = document.createElement('textarea');
+  ta.className = 'bullet-field';
+  ta.rows = 2;
+  ta.value = text;
+  ta.placeholder = 'One bullet point...';
+  const del = document.createElement('button');
+  del.className = 'bullet-del';
+  del.textContent = '✕';
+  del.onclick = () => row.remove();
+  row.appendChild(ta);
+  row.appendChild(del);
+  list.appendChild(row);
+}
+
+function collectBullets() {
+  return Array.from(document.querySelectorAll('#notes-edit-bullets .bullet-field'))
+    .map(t => t.value.trim())
+    .filter(Boolean);
+}
+
+function saveNotesEdit() {
+  state.notes = {
+    date: document.getElementById('notes-edit-date').value || new Date().toISOString().split('T')[0],
+    quote: document.getElementById('notes-edit-quote').value.trim().replace(/^["']|["']$/g, ''),
+    bullets: collectBullets()
+  };
+  saveNotesStore();
+  renderNotes();
+  closeNotesSheet();
+}
+
+// Parse pasted check-in text
+function parseNotesText(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+
+  const bullets = [];
+  const narrativeLines = [];
+  const bulletRe = /^[-•*–—]\s*(.+)/;
+
+  for (const line of lines) {
+    const m = line.match(bulletRe);
+    if (m) {
+      bullets.push(m[1].trim());
+    } else {
+      narrativeLines.push(line);
+    }
+  }
+
+  // Try to extract a date from the text (dd/mm/yy or dd/mm/yyyy)
+  let extractedDate = null;
+  const dateMatch = text.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (dateMatch) {
+    let [_, d, m, y] = dateMatch;
+    if (y.length === 2) y = '20' + y;
+    const iso = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    const test = new Date(iso);
+    if (!isNaN(test.getTime())) extractedDate = iso;
+  }
+
+  // First non-bullet, non-trivial line = quote
+  // Skip headers, dates, and greeting lines
+  let quote = '';
+  const skipPatterns = [
+    /^check[\s-]*in/i,
+    /^(hey|hi|hows|right|yo|ok|okay|sup|oi)\b/i,
+    /^\d{1,2}[\/\-]\d{1,2}/, // dates
+    /^(week|wk)\s*\d+/i,
+    /^(couple of|few of)/i,
+  ];
+  for (const l of narrativeLines) {
+    if (l.length < 15) continue;
+    if (skipPatterns.some(p => p.test(l))) continue;
+    quote = l.replace(/^["']|["']$/g, '');
+    break;
+  }
+  // Fallback
+  if (!quote && bullets.length) quote = bullets[0];
+  if (!quote && narrativeLines.length) quote = narrativeLines[0];
+
+  return {
+    date: extractedDate || new Date().toISOString().split('T')[0],
+    quote,
+    bullets: bullets.length ? bullets : [narrativeLines.slice(1).join(' ').slice(0, 200)].filter(Boolean)
+  };
+}
+
+function previewNotesPaste() {
+  const raw = document.getElementById('notes-paste-input').value;
+  const parsed = parseNotesText(raw);
+  if (!parsed) { alert('Paste some text first'); return; }
+  // Push into edit form so user can tweak
+  state.notes = parsed;
+  populateNotesEditForm();
+  setNotesMode('edit');
+}
+
+function saveNotesPaste() {
+  const raw = document.getElementById('notes-paste-input').value;
+  const parsed = parseNotesText(raw);
+  if (!parsed || (!parsed.quote && !parsed.bullets.length)) {
+    alert("Couldn't find anything to save. Try pasting again.");
+    return;
+  }
+  state.notes = parsed;
+  saveNotesStore();
+  renderNotes();
+  closeNotesSheet();
+}
+
+// === MACROS SHEET ===
+function openMacrosSheet() {
+  populateMacrosEditForm();
+  document.getElementById('macros-paste-input').value = '';
+  setMacrosMode('paste');
+  document.getElementById('macros-overlay').classList.add('open');
+  document.getElementById('macros-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMacrosSheet() {
+  document.getElementById('macros-overlay').classList.remove('open');
+  document.getElementById('macros-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function setMacrosMode(mode) {
+  document.getElementById('macros-mode-paste').classList.toggle('on', mode === 'paste');
+  document.getElementById('macros-mode-edit').classList.toggle('on', mode === 'edit');
+  document.getElementById('macros-paste-pane').style.display = mode === 'paste' ? 'block' : 'none';
+  document.getElementById('macros-edit-pane').style.display = mode === 'edit' ? 'block' : 'none';
+}
+
+function populateMacrosEditForm() {
+  const m = state.macros;
+  document.getElementById('edit-t-p').value = m.training.p;
+  document.getElementById('edit-t-c').value = m.training.c;
+  document.getElementById('edit-t-f').value = m.training.f;
+  document.getElementById('edit-r-p').value = m.rest.p;
+  document.getElementById('edit-r-c').value = m.rest.c;
+  document.getElementById('edit-r-f').value = m.rest.f;
+  document.getElementById('edit-tdee').value = m.tdee || '';
+}
+
+function saveMacrosEdit() {
+  const parseNum = id => parseInt(document.getElementById(id).value) || 0;
+  state.macros = {
+    training: { p: parseNum('edit-t-p'), c: parseNum('edit-t-c'), f: parseNum('edit-t-f') },
+    rest: { p: parseNum('edit-r-p'), c: parseNum('edit-r-c'), f: parseNum('edit-r-f') },
+    tdee: parseNum('edit-tdee') || null
+  };
+  saveMacrosStore();
+  renderMacros();
+  closeMacrosSheet();
+}
+
+// Parse pasted diet plan text
+function parseMacrosText(text) {
+  const lower = text.toLowerCase();
+  const result = {
+    training: { p: null, c: null, f: null },
+    rest: { p: null, c: null, f: null },
+    tdee: null
+  };
+
+  // TDEE
+  const tdeeMatch = lower.match(/tdee[^\d]*(\d{3,4})/);
+  if (tdeeMatch) result.tdee = parseInt(tdeeMatch[1]);
+
+  // Split text into training block and rest block
+  const trainStart = lower.search(/training\s*day/);
+  const restStart = lower.search(/rest\s*day|non[\s-]training/);
+
+  let trainBlock = '';
+  let restBlock = '';
+
+  if (trainStart >= 0 && restStart >= 0) {
+    if (trainStart < restStart) {
+      trainBlock = text.slice(trainStart, restStart);
+      restBlock = text.slice(restStart);
+    } else {
+      restBlock = text.slice(restStart, trainStart);
+      trainBlock = text.slice(trainStart);
+    }
+  } else if (trainStart >= 0) {
+    trainBlock = text.slice(trainStart);
+  } else if (restStart >= 0) {
+    restBlock = text.slice(restStart);
+  } else {
+    // No headers found - try to get one set of macros
+    trainBlock = text;
+  }
+
+  const pickMacros = block => {
+    const b = block.toLowerCase();
+    const out = { p: null, c: null, f: null };
+    // Match "protein 231" or "p 231" or "protein: 231"
+    const pMatch = b.match(/protein[^\d]*(\d{2,3})/);
+    const cMatch = b.match(/carb[s]?[^\d]*(\d{2,3})/);
+    const fMatch = b.match(/fat[s]?[^\d]*(\d{1,3})/);
+    if (pMatch) out.p = parseInt(pMatch[1]);
+    if (cMatch) out.c = parseInt(cMatch[1]);
+    if (fMatch) out.f = parseInt(fMatch[1]);
+    return out;
+  };
+
+  if (trainBlock) Object.assign(result.training, pickMacros(trainBlock));
+  if (restBlock) Object.assign(result.rest, pickMacros(restBlock));
+  // If we only got training block, copy to rest as fallback? No — leave null and merge with current
+  return result;
+}
+
+function mergeParsedMacros(parsed) {
+  const cur = state.macros;
+  return {
+    training: {
+      p: parsed.training.p ?? cur.training.p,
+      c: parsed.training.c ?? cur.training.c,
+      f: parsed.training.f ?? cur.training.f,
+    },
+    rest: {
+      p: parsed.rest.p ?? cur.rest.p,
+      c: parsed.rest.c ?? cur.rest.c,
+      f: parsed.rest.f ?? cur.rest.f,
+    },
+    tdee: parsed.tdee ?? cur.tdee
+  };
+}
+
+function previewMacrosPaste() {
+  const raw = document.getElementById('macros-paste-input').value;
+  if (!raw.trim()) { alert('Paste some text first'); return; }
+  const parsed = parseMacrosText(raw);
+  state.macros = mergeParsedMacros(parsed);
+  populateMacrosEditForm();
+  setMacrosMode('edit');
+}
+
+function saveMacrosPaste() {
+  const raw = document.getElementById('macros-paste-input').value;
+  if (!raw.trim()) { alert('Paste some text first'); return; }
+  const parsed = parseMacrosText(raw);
+  const merged = mergeParsedMacros(parsed);
+  // Sanity: at least one macro must have been found
+  const anyFound = Object.values(parsed.training).some(v => v != null) ||
+                   Object.values(parsed.rest).some(v => v != null);
+  if (!anyFound) {
+    alert("Couldn't find macro numbers. Try 'Edit manually' instead.");
+    return;
+  }
+  state.macros = merged;
+  saveMacrosStore();
+  renderMacros();
+  closeMacrosSheet();
+}
+
+// === LIFT SHEET ===
+let currentLiftId = null;
+
+function findExercise(id) {
+  for (const [title, exs] of Object.entries(WORKOUTS)) {
+    const found = exs.find(e => e.id === id);
+    if (found) return { ex: found, workout: title };
+  }
+  return null;
+}
+
+function openLiftSheet(id) {
+  const found = findExercise(id);
+  if (!found) return;
+  currentLiftId = id;
+  const pr = getPr(found.ex);
+  document.getElementById('lift-title').textContent = found.ex.name;
+  document.getElementById('lift-sets-display').textContent =
+    `${found.workout.toUpperCase()} · ${found.ex.sets.replace(/\n/g, '  ·  ')}`;
+  document.getElementById('lift-weight').value = pr.weight ?? '';
+  document.getElementById('lift-unit').value = pr.unit || 'kg';
+  document.getElementById('lift-reps').value = pr.reps ?? '';
+  document.getElementById('lift-notes').value = pr.notes || '';
+  document.getElementById('lift-overlay').classList.add('open');
+  document.getElementById('lift-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLiftSheet() {
+  document.getElementById('lift-overlay').classList.remove('open');
+  document.getElementById('lift-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+  currentLiftId = null;
+}
+function saveLift() {
+  if (!currentLiftId) return;
+  const weightVal = document.getElementById('lift-weight').value;
+  const repsVal = document.getElementById('lift-reps').value;
+  state.lifts[currentLiftId] = {
+    weight: weightVal === '' ? null : parseFloat(weightVal),
+    unit: document.getElementById('lift-unit').value,
+    reps: repsVal === '' ? null : parseInt(repsVal),
+    notes: document.getElementById('lift-notes').value.trim(),
+    updated: new Date().toISOString().split('T')[0]
+  };
+  saveLiftsStore();
+  renderTraining();
+  closeLiftSheet();
+}
+function resetLift() {
+  if (!currentLiftId) return;
+  if (!confirm('Reset this lift to the default starting value?')) return;
+  delete state.lifts[currentLiftId];
+  saveLiftsStore();
+  renderTraining();
+  closeLiftSheet();
+}
+
+// === INIT ===
+const todayIso = new Date().toISOString().split('T')[0];
+document.getElementById('log-date').value = todayIso;
+document.getElementById('log-unit').textContent = state.unit;
+document.getElementById('unit-kg').classList.toggle('on', state.unit === 'kg');
+document.getElementById('unit-lb').classList.toggle('on', state.unit === 'lb');
+
+render();
+renderTraining();
+renderNotes();
+renderMacros();
+
+// Redraw chart on resize
+window.addEventListener('resize', drawChart);
+
+// === INSTALL PROMPT ===
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('jamall.install.hidden')) {
+    document.getElementById('install-banner').classList.add('show');
+  }
+});
+function doInstall() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; hideBanner(); });
+  }
+}
+function hideBanner() {
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('jamall.install.hidden', '1');
+}
+
+// Show iOS install hint if not installed
+if (/iPhone|iPad|iPod/.test(navigator.userAgent) && !window.navigator.standalone) {
+  if (!localStorage.getItem('jamall.install.hidden')) {
+    const b = document.getElementById('install-banner');
+    b.innerHTML = `
+      <div>
+        <strong>Add to home screen</strong>
+        <span>Share → Add to Home Screen</span>
+      </div>
+      <button class="close-x" onclick="hideBanner()">✕</button>
+    `;
+    b.classList.add('show');
+  }
+}
+
+// Service worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+/* ============================================================
+   DESIGN TOKENS — Couples Life App
+   Ported from design-system.html
+   ============================================================ */
+
+/* ---------- Hue palette (identity colour options) ---------- */
+:root {
+  --h-slate: 250;
+  --h-teal: 190;
+  --h-moss: 145;
+  --h-brass: 85;
+  --h-clay: 35;
+  --h-plum: 330;
+
+  /* Default identity hues (overridden by user selection) */
+  --id-a-h: 250;
+  --id-b-h: 35;
+}
+
+/* ---------- Typography ---------- */
+:root {
+  --font-ui: 'General Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --t-xs: 0.6875rem;   /* 11px */
+  --t-sm: 0.8125rem;   /* 13px */
+  --t-base: 0.9375rem; /* 15px */
+  --t-lg: 1.125rem;    /* 18px */
+  --t-xl: 1.5rem;      /* 24px */
+  --t-2xl: 2rem;       /* 32px */
+}
+
+/* ---------- Spacing (multiples of 4px) ---------- */
+:root {
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+}
+
+/* ---------- Border radius (3 / 6 / 10 only) ---------- */
+:root {
+  --r-sm: 3px;
+  --r-md: 6px;
+  --r-lg: 10px;
+}
+
+/* ---------- Misc ---------- */
+:root {
+  --hair: 1px;
+}
+
+/* ============================================================
+   DARK THEME (default)
+   ============================================================ */
+:root[data-theme="dark"] {
+  --bg: #101012;
+  --surface: #18181B;
+  --surface-2: #1F1F23;
+  --line: #2A2A2F;
+  --line-strong: #3A3A41;
+  --ink: #ECECEA;
+  --ink-2: #9A9A96;
+  --ink-3: #6A6A67;
+  --id-l: 0.70;
+  --id-c: 0.125;
+  --wash: 0.20;
+}
+
+/* ============================================================
+   LIGHT THEME
+   ============================================================ */
+:root[data-theme="light"] {
+  --bg: #FAFAF9;
+  --surface: #FFFFFF;
+  --surface-2: #F2F2F0;
+  --line: #E3E3E0;
+  --line-strong: #CFCFCB;
+  --ink: #18181A;
+  --ink-2: #666662;
+  --ink-3: #93938E;
+  --id-l: 0.58;
+  --id-c: 0.125;
+  --wash: 0.14;
+}
+
+/* ---------- Computed identity colours ---------- */
+:root {
+  --id-a: oklch(var(--id-l) var(--id-c) var(--id-a-h));
+  --id-b: oklch(var(--id-l) var(--id-c) var(--id-b-h));
+  --id-shared: var(--ink-2);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--t-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* ============================================================
+   NUMERIC DISPLAY UTILITY
+   All numeric values use IBM Plex Mono with tabular-nums
+   ============================================================ */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+.eyebrow {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+h1 {
+  font-size: var(--t-2xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* ============================================================
+   FOCUS INDICATORS
+   2px solid outline, 1px offset on all interactive elements
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   Honour prefers-reduced-motion by disabling transitions
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,22 @@
+# Dependencies — reinstalled with `npm install`, never committed.
+node_modules/
+
+# Secrets. Nothing in this repo should ever hold an API key: they live in
+# Supabase Edge Function secrets. This is a backstop, not the policy.
+.env
+.env.*
+*.pem
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+
+# Test and build output
+coverage/
+dist/

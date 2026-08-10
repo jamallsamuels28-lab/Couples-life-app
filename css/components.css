@@ -1,0 +1,490 @@
+/* ============================================================
+   UI COMPONENTS — Couples Life App
+   Reusable component styles respecting design system constraints.
+   
+   Constraints:
+   - Border-radius: 3px / 6px / 10px only (--r-sm, --r-md, --r-lg)
+   - Spacing: multiples of 4px (--s1 through --s7)
+   - Shadows: max 0 1px 2px
+   - No gradients (except .overlap-fill reserved for task 5.2)
+   - No emoji in text or pseudo-elements
+   - Icons: stroked paths, 1.5px weight, 20px bounding box
+   - Shared items: var(--ink-2) graphite, not a third colour
+   - Focus: 2px solid outline, 1px offset (inherited from design-tokens)
+   - Reduced motion: transitions disabled (inherited from design-tokens)
+   ============================================================ */
+
+/* ============================================================
+   SHADOWS
+   Max shadow: 0 1px 2px
+   ============================================================ */
+:root {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================================
+   BUTTONS
+   Three variants: primary, secondary, ghost
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s2) var(--s4);
+  border: var(--hair) solid transparent;
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-size: var(--t-base);
+  font-weight: 500;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary — solid surface with ink text */
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+
+/* Secondary — outlined */
+.btn-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+  border-color: var(--ink-3);
+}
+
+/* Ghost — no border, minimal background */
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: var(--s1) var(--s3);
+  font-size: var(--t-sm);
+  border-radius: var(--r-sm);
+}
+
+/* ============================================================
+   CARD
+   Surface background with line border
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s3);
+}
+
+.card-title {
+  font-size: var(--t-lg);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: var(--hair) solid var(--line);
+}
+
+/* ============================================================
+   INPUT FIELDS
+   Text and number inputs with consistent styling
+   ============================================================ */
+.input {
+  display: block;
+  width: 100%;
+  padding: var(--s2) var(--s3);
+  background: var(--surface-2);
+  color: var(--ink);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+  font-family: var(--font-ui);
+  font-size: var(--t-base);
+  line-height: 1.5;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--ink-3);
+}
+
+.input:hover {
+  border-color: var(--line-strong);
+}
+
+.input:focus {
+  border-color: var(--ink-2);
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* Numeric input — uses monospace font */
+.input-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Input with error state */
+.input-error {
+  border-color: #e55;
+}
+
+.input-error:focus {
+  outline-color: #e55;
+}
+
+/* Input label */
+.input-label {
+  display: block;
+  font-size: var(--t-sm);
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: var(--s1);
+}
+
+/* Input group (label + input + optional error) */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+/* Inline error message adjacent to field */
+.input-error-msg {
+  font-size: var(--t-xs);
+  color: #e55;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   Error and success messages, non-blocking
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  top: var(--s4);
+  right: var(--s4);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: var(--surface);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--t-sm);
+  color: var(--ink);
+  pointer-events: auto;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  max-width: 320px;
+}
+
+.toast-success {
+  border-color: #4a9;
+}
+
+.toast-success .toast-icon {
+  stroke: #4a9;
+}
+
+.toast-error {
+  border-color: #e55;
+}
+
+.toast-error .toast-icon {
+  stroke: #e55;
+}
+
+.toast-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+  fill: none;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.toast-dismiss {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: var(--s1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-dismiss:hover {
+  color: var(--ink);
+}
+
+/* Toast visibility states */
+.toast.hidden {
+  opacity: 0;
+  transform: translateX(var(--s4));
+  pointer-events: none;
+}
+
+/* ============================================================
+   INLINE SUCCESS MESSAGE
+   Non-toast success feedback within forms
+   ============================================================ */
+.toast-success-inline {
+  margin-top: var(--s3);
+  padding: var(--s2) var(--s3);
+  font-size: var(--t-sm);
+  color: #4a9;
+  border: var(--hair) solid #4a9;
+  border-radius: var(--r-md);
+  line-height: 1.4;
+}
+
+.toast-success-inline.hidden {
+  display: none;
+}
+
+/* ============================================================
+   BADGE / TAG
+   Labels for categories, statuses, meal types
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s1) var(--s2);
+  background: var(--surface-2);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-sm);
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--ink-2);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Badge for identity A items */
+.badge-id-a {
+  border-color: var(--id-a);
+  color: var(--id-a);
+}
+
+/* Badge for identity B items */
+.badge-id-b {
+  border-color: var(--id-b);
+  color: var(--id-b);
+}
+
+/* ============================================================
+   ICON UTILITY
+   Stroked icons: 1.5px weight, 20px bounding box
+   ============================================================ */
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex-shrink: 0;
+}
+
+/* Icon size variants */
+.icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-lg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ============================================================
+   SHARED ITEM STYLING
+   Co-owned resources styled with var(--ink-2) graphite
+   ============================================================ */
+.shared-item {
+  color: var(--ink-2);
+}
+
+.shared-item .badge {
+  border-color: var(--ink-2);
+  color: var(--ink-2);
+}
+
+.shared-item .icon {
+  stroke: var(--ink-2);
+}
+
+/* Shared indicator — subtle label for co-owned content */
+.shared-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
+/* ============================================================
+   IDENTITY COLOUR UTILITIES
+   Ownership colours for each partner
+   ============================================================ */
+.owner-a {
+  color: var(--id-a);
+}
+
+.owner-b {
+  color: var(--id-b);
+}
+
+.owner-a .icon {
+  stroke: var(--id-a);
+}
+
+.owner-b .icon {
+  stroke: var(--id-b);
+}
+
+/* ============================================================
+   OVERLAP-FILL (reserved for task 5.2)
+   This is the ONLY element allowed to use a gradient.
+   ============================================================ */
+.overlap-fill {
+  background: linear-gradient(90deg, var(--id-a), var(--id-b));
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* Flex helpers */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-1 { gap: var(--s1); }
+.gap-2 { gap: var(--s2); }
+.gap-3 { gap: var(--s3); }
+.gap-4 { gap: var(--s4); }
+
+/* Spacing helpers */
+.mt-1 { margin-top: var(--s1); }
+.mt-2 { margin-top: var(--s2); }
+.mt-3 { margin-top: var(--s3); }
+.mt-4 { margin-top: var(--s4); }
+.mb-2 { margin-bottom: var(--s2); }
+.mb-3 { margin-bottom: var(--s3); }
+.mb-4 { margin-bottom: var(--s4); }
+
+/* Text utilities */
+.text-muted {
+  color: var(--ink-3);
+}
+
+.text-sm {
+  font-size: var(--t-sm);
+}
+
+/* Shadow utility — max 0 1px 2px */
+.shadow {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Visually hidden (accessible) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================
+   REDUCED MOTION — disable transitions on components
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .input,
+  .toast {
+    transition: none;
+  }
+}

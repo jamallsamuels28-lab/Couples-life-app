@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en-GB" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Couples Life App</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!--
+    Import map: resolves bare module specifiers for the browser.
+    calendar-module.js does `import { RRule } from 'rrule'`, which browsers
+    cannot resolve on their own. The version is pinned to match package.json,
+    and the +esm build is pre-bundled so its internal imports resolve too.
+    This must be declared before the first module script on the page.
+  -->
+  <script type="importmap">
+  {
+    "imports": {
+      "rrule": "https://cdn.jsdelivr.net/npm/rrule@2.8.1/+esm"
+    }
+  }
+  </script>
+
+  <!-- Font loading: General Sans (Fontshare) + IBM Plex Mono (Google Fonts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Design tokens and theme system -->
+  <link rel="stylesheet" href="css/design-tokens.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/colour-picker.css">
+  <link rel="stylesheet" href="css/app-shell.css">
+  <link rel="stylesheet" href="css/realtime.css">
+  <link rel="stylesheet" href="css/dietary-preferences.css">
+  <link rel="stylesheet" href="css/overlap-ribbon.css">
+  <link rel="stylesheet" href="css/calendar-views.css">
+  <link rel="stylesheet" href="css/modules.css">
+
+  <!-- Supabase JS Client (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // Theme toggle: switch between dark and light via data-theme attribute
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
+
+    function getTheme() {
+      return localStorage.getItem('theme') || 'dark';
+    }
+
+    // Apply saved theme on load
+    setTheme(getTheme());
+  </script>
+  <script type="module">
+    import { initColours } from './js/colour-picker.js';
+    // Restore identity colours from localStorage on boot
+    initColours();
+  </script>
+  <script type="module">
+    // If Google has redirected back with an authorisation code, finish the
+    // handshake before anything else renders. No-ops on an ordinary load.
+    import { completeGoogleAuth } from './js/google-sync.js';
+    completeGoogleAuth().then((result) => {
+      if (result.handled && !result.success) {
+        console.warn('Google Calendar connection failed:', result.error);
+      }
+      if (result.handled && result.success) {
+        window.dispatchEvent(new CustomEvent('calendar:refresh'));
+      }
+    });
+  </script>
+
+  <!-- App Shell (ES module) -->
+  <script type="module" src="js/app-shell.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+
+      const host = window.location.hostname;
+      const isDev = host === 'localhost' || host === '127.0.0.1' || host === '' || host === '[::1]';
+
+      if (isDev) {
+        // Local development: tear down any existing worker and caches so the
+        // browser always loads the current files from disk. A stale worker
+        // otherwise keeps serving old JS/CSS no matter how hard you refresh.
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => {
+            const hadWorker = registrations.length > 0;
+            return Promise.all(registrations.map((r) => r.unregister()))
+              .then(() => hadWorker);
+          })
+          .then((hadWorker) => {
+            if (!('caches' in window)) return hadWorker;
+            return caches.keys()
+              .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+              .then(() => hadWorker);
+          })
+          .then((hadWorker) => {
+            if (hadWorker) {
+              console.log('Dev mode: removed stale service worker and caches. Reloading…');
+              window.location.reload();
+            }
+          })
+          .catch((error) => {
+            console.warn('Dev mode service worker cleanup failed:', error);
+          });
+        return;
+      }
+
+      // Production (e.g. GitHub Pages): register normally for offline support.
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('SW registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.warn('SW registration failed:', error);
+          });
+      });
+    })();
+  </script>
+
+  <!-- PWA Install Prompt -->
+  <script>
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // Dispatch a custom event so the app shell can show an install button if desired
+      window.dispatchEvent(new CustomEvent('pwa-install-available'));
+    });
+
+    // Expose a global function to trigger the install prompt
+    window.triggerPWAInstall = async () => {
+      if (!deferredPrompt) return false;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      return outcome === 'accepted';
+    };
+  </script>
+</body>
+</html>
