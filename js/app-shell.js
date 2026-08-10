@@ -42,13 +42,17 @@ export async function ensureAuth() {
   return validateAuthToken();
 }
 
+/** The three tabs. Steps lives inside Fitness rather than having its own. */
+export const VALID_VIEWS = ['calendar', 'fitness', 'food'];
+
 /** Navigate to a module view without full page reload */
 export function navigate(viewId) {
-  const validViews = ['calendar', 'steps', 'food'];
-  if (!validViews.includes(viewId)) return;
+  // Old bookmarks and home-screen shortcuts pointing at #steps land on Fitness.
+  const target = viewId === 'steps' ? 'fitness' : viewId;
+  if (!VALID_VIEWS.includes(target)) return;
 
-  currentView = viewId;
-  window.location.hash = viewId;
+  currentView = target;
+  window.location.hash = target;
   renderActiveView();
   updateNavActiveState();
 }
@@ -87,7 +91,8 @@ export async function init() {
 
   // Determine initial view from hash or default to calendar
   const hash = window.location.hash.replace('#', '');
-  currentView = ['calendar', 'steps', 'food'].includes(hash) ? hash : 'calendar';
+  const requested = hash === 'steps' ? 'fitness' : hash;
+  currentView = VALID_VIEWS.includes(requested) ? requested : 'calendar';
   window.location.hash = currentView;
 
   renderActiveView();
@@ -297,12 +302,6 @@ function renderShell() {
         </svg>
         <span class="nav-label">Fitness</span>
       </button>
-      <button class="nav-item" data-view="steps" aria-label="Steps">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M6 16 L6 10 L10 10 L10 6 L14 6 L14 2"/>
-        </svg>
-        <span class="nav-label">Steps</span>
-      </button>
       <button class="nav-item" data-view="food" aria-label="Food">
         <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
           <ellipse cx="10" cy="14" rx="7" ry="4"/>
@@ -328,8 +327,11 @@ function renderShell() {
 
 function onHashChange() {
   const hash = window.location.hash.replace('#', '');
-  if (['calendar', 'fitness', 'steps', 'food'].includes(hash) && hash !== currentView) {
-    currentView = hash;
+  // 'steps' is kept as an alias so an old bookmark or home-screen shortcut
+  // still lands somewhere sensible rather than on a blank view.
+  const target = hash === 'steps' ? 'fitness' : hash;
+  if (['calendar', 'fitness', 'food'].includes(target) && target !== currentView) {
+    currentView = target;
     renderActiveView();
     updateNavActiveState();
   }
@@ -346,7 +348,7 @@ function renderActiveView() {
   // survives when a module replaces the container's contents. The mount
   // container uses .view-content (a full-width stack), not .view-placeholder —
   // that class centres its children and is only for the loading message.
-  const viewTitles = { calendar: 'Calendar', fitness: 'Fitness', steps: 'Steps', food: 'Food' };
+  const viewTitles = { calendar: 'Calendar', fitness: 'Fitness', food: 'Food' };
   const title = viewTitles[currentView];
 
   container.innerHTML = `

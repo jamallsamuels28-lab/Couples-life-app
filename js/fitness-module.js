@@ -8,6 +8,7 @@
 
 import { supabase, withAuthGuard } from './supabase-client.js';
 import { getCurrentUser, getPartner } from './app-shell.js';
+import { activate as activateStepsSection } from './steps-module.js';
 import { escapeHtml, chevronSvg, formatNumber, localDateKey } from './ui-helpers.js';
 import {
   MET,
@@ -253,9 +254,19 @@ export function activateFitnessView(container) {
       <summary><span>Restricted exercises</span>${chevronSvg()}</summary>
       <div class="disclosure-body" id="restriction-mount"></div>
     </details>
+
+    <div class="section-heading mt-4">
+      <h3>Steps</h3>
+      <span class="section-meta">Daily movement</span>
+    </div>
+    <div id="steps-mount"></div>
   `;
 
   renderFitnessDashboard(container.querySelector('#fitness-dashboard'));
+
+  // Steps is part of training, not a separate concern — walking volume feeds
+  // the same energy expenditure figure as a session does.
+  activateStepsSection(container.querySelector('#steps-mount'));
 }
 
 export async function renderFitnessDashboard(mount) {

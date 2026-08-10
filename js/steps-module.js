@@ -1249,15 +1249,13 @@ export function renderComparativeStats(container, stats) {
   `;
 }
 
-// --- Listen for view changes to activate steps module ---
+// Steps no longer has a tab of its own — it is a section inside Fitness, which
+// is where it belongs: step count is training volume, not a separate hobby.
+// fitness-module mounts it by calling activate() with its own container, so
+// this module no longer listens for a view change itself. It still releases
+// its realtime subscription when you navigate away from Fitness.
 window.addEventListener('viewchange', (event) => {
-  if (event.detail.view === 'steps') {
-    const container = document.getElementById('steps-view');
-    if (container) {
-      activate(container);
-    }
-  } else {
-    // Unsubscribe when leaving the steps view
+  if (event.detail.view !== 'fitness') {
     unsubscribeFromStepsRealtime();
   }
 });
