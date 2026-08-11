@@ -9,70 +9,96 @@ import { getCurrentUser } from './app-shell.js';
 // --- Constants ---
 
 export const VALID_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'];
-const FAVORITES_STORAGE_KEY = 'recipe_favorites_';
 
-// --- Favorites (per-user, localStorage) ---
+// --- Favourites (per-person, public.recipe_favorites) ---
+//
+// These used to live in localStorage. That made them per-browser rather than
+// per-person: starring a recipe on the laptop left it unstarred on the phone,
+// and clearing site data wiped them. They are rows now.
+//
+// A synchronous cache sits in front of the table because rendering a card must
+// know the starred state without awaiting anything. fetchFavorites() fills it;
+// the render path only ever reads getFavorites().
+
+let favoritesCache = new Set();
+let favoritesCacheUserId = null;
 
 /**
- * Get the localStorage key for a user's favorites set.
+ * Loads this user's favourites from the database into the cache.
+ * @returns {Promise<Set<string>>}
  */
-function getFavoritesKey(userId) {
-  return `${FAVORITES_STORAGE_KEY}${userId}`;
-}
-
-/**
- * Load the set of favorited recipe IDs for a given user.
- * Returns a Set of recipe IDs.
- */
-export function loadFavorites(userId) {
-  try {
-    const raw = localStorage.getItem(getFavoritesKey(userId));
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed : []);
-  } catch {
-    return new Set();
+export async function fetchFavorites(userId) {
+  if (!userId) {
+    favoritesCache = new Set();
+    favoritesCacheUserId = null;
+    return favoritesCache;
   }
+
+  const { data, error } = await supabase
+    .from('recipe_favorites').select('recipe_id').eq('user_id', userId);
+
+  // On failure keep whatever is cached rather than silently showing everything
+  // as unfavourited, which would invite the user to re-star what is already
+  // starred and looks like data loss.
+  if (error) return favoritesCache;
+
+  favoritesCache = new Set((data || []).map(row => row.recipe_id));
+  favoritesCacheUserId = userId;
+  return favoritesCache;
 }
 
-/**
- * Persist the favorites set for a given user to localStorage.
- */
-function saveFavorites(userId, favoritesSet) {
-  localStorage.setItem(getFavoritesKey(userId), JSON.stringify([...favoritesSet]));
+/** The cached favourites, for synchronous render paths. */
+export function getFavorites() {
+  return favoritesCache;
+}
+
+/** Drops the cache — used on sign-out so one person's stars cannot leak. */
+export function clearFavoritesCache() {
+  favoritesCache = new Set();
+  favoritesCacheUserId = null;
 }
 
 /**
  * Check if the current user has favorited a recipe.
  */
 export function isFavorite(recipeId) {
-  const user = getCurrentUser();
-  if (!user) return false;
-  const favorites = loadFavorites(user.id);
-  return favorites.has(recipeId);
+  return favoritesCache.has(recipeId);
 }
 
 /**
- * Toggle favorite status for the current user on a recipe.
- * Returns the new favorite state (true = favorited, false = unfavorited).
+ * Toggle favourite status for the current user on a recipe.
+ *
+ * The cache is updated first so the star responds immediately, and rolled back
+ * if the write fails — a star that flips back is honest about not having saved.
+ *
+ * @returns {Promise<{success: boolean, favorite: boolean}>}
  */
-export function toggleFavorite(recipeId) {
+export async function toggleFavorite(recipeId) {
   const user = getCurrentUser();
-  if (!user) return false;
+  if (!user || !recipeId) return { success: false, favorite: isFavorite(recipeId) };
 
-  const favorites = loadFavorites(user.id);
-  let nowFavorite;
+  if (favoritesCacheUserId !== user.id) await fetchFavorites(user.id);
 
-  if (favorites.has(recipeId)) {
-    favorites.delete(recipeId);
-    nowFavorite = false;
-  } else {
-    favorites.add(recipeId);
-    nowFavorite = true;
+  const wasFavorite = favoritesCache.has(recipeId);
+  const nowFavorite = !wasFavorite;
+
+  if (nowFavorite) favoritesCache.add(recipeId);
+  else favoritesCache.delete(recipeId);
+
+  const { error } = nowFavorite
+    // The primary key makes this idempotent, so a double tap is harmless.
+    ? await supabase.from('recipe_favorites')
+        .upsert({ user_id: user.id, recipe_id: recipeId }, { onConflict: 'user_id,recipe_id' })
+    : await supabase.from('recipe_favorites')
+        .delete().eq('user_id', user.id).eq('recipe_id', recipeId);
+
+  if (error) {
+    if (wasFavorite) favoritesCache.add(recipeId);
+    else favoritesCache.delete(recipeId);
+    return { success: false, favorite: wasFavorite };
   }
 
-  saveFavorites(user.id, favorites);
-  return nowFavorite;
+  return { success: true, favorite: nowFavorite };
 }
 
 // --- Data Access ---
@@ -163,13 +189,10 @@ export async function fetchRecipeBook(filters = {}) {
     );
   }
 
-  // Apply favorites filter client-side (localStorage-based)
+  // Applied client-side against the cached favourites.
   if (filters.favoritesOnly) {
-    const user = getCurrentUser();
-    if (user) {
-      const favorites = loadFavorites(user.id);
-      recipes = recipes.filter(r => favorites.has(r.id));
-    }
+    const favorites = getFavorites();
+    recipes = recipes.filter(r => favorites.has(r.id));
   }
 
   return { success: true, data: recipes };
@@ -232,7 +255,7 @@ export function sortRecipesByDate(recipes) {
  */
 export function renderRecipeBook(container, recipes = [], allTags = []) {
   const user = getCurrentUser();
-  const favorites = user ? loadFavorites(user.id) : new Set();
+  const favorites = getFavorites();
 
   container.innerHTML = `
     <section class="card recipe-book-section" aria-label="Recipe Book">
@@ -278,6 +301,9 @@ export function renderRecipeBook(container, recipes = [], allTags = []) {
   const favFilter = container.querySelector('#recipe-fav-filter');
   const recipeList = container.querySelector('#recipe-list');
 
+  // The working copy, so a deleted recipe disappears without a round trip.
+  let currentRecipes = recipes;
+
   function applyFilters() {
     const filters = {
       tags: tagFilter.value ? [tagFilter.value] : [],
@@ -285,18 +311,25 @@ export function renderRecipeBook(container, recipes = [], allTags = []) {
       favoritesOnly: favFilter.checked,
     };
 
-    const currentFavorites = user ? loadFavorites(user.id) : new Set();
-    const filtered = filterRecipes(recipes, filters, currentFavorites);
+    const currentFavorites = getFavorites();
+    const filtered = filterRecipes(currentRecipes, filters, currentFavorites);
     recipeList.innerHTML = renderRecipeCards(filtered, currentFavorites);
-    attachFavoriteHandlers(recipeList, recipes, currentFavorites, () => applyFilters());
+    attachFavoriteHandlers(recipeList, currentRecipes, currentFavorites, () => applyFilters());
+    attachDeleteHandlers(recipeList, onRecipeDeleted);
+  }
+
+  function onRecipeDeleted(recipeId) {
+    currentRecipes = currentRecipes.filter(r => r.id !== recipeId);
+    applyFilters();
   }
 
   tagFilter.addEventListener('change', applyFilters);
   mealTypeFilter.addEventListener('change', applyFilters);
   favFilter.addEventListener('change', applyFilters);
 
-  // Attach favorite button handlers
-  attachFavoriteHandlers(recipeList, recipes, favorites, () => applyFilters());
+  // Attach favorite and delete button handlers
+  attachFavoriteHandlers(recipeList, currentRecipes, favorites, () => applyFilters());
+  attachDeleteHandlers(recipeList, onRecipeDeleted);
 }
 
 /**
@@ -329,6 +362,14 @@ function renderRecipeCards(recipes, favoritesSet) {
               <path d="M10 15.27L4.12 18l1.12-6.53L1 7.24l6.56-.95L10 1l2.44 6.29 6.56.95-4.24 4.23L15.88 18z"/>
             </svg>
           </button>
+          <button class="btn btn-ghost btn-sm recipe-delete-btn"
+            data-recipe-id="${recipe.id}"
+            data-recipe-title="${escapeHtml(recipe.title)}"
+            aria-label="Delete ${escapeHtml(recipe.title)}">
+            <svg class="icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 6h12M8 6V4h4v2M6 6l1 10h6l1-10"/>
+            </svg>
+          </button>
         </div>
         ${macroDisplay ? `<p class="text-sm input-num">${macroDisplay}</p>` : ''}
         ${tagsHtml ? `<div class="flex gap-1 mt-2">${tagsHtml}</div>` : ''}
@@ -342,10 +383,65 @@ function renderRecipeCards(recipes, favoritesSet) {
  */
 function attachFavoriteHandlers(listEl, allRecipes, favoritesSet, onToggle) {
   listEl.querySelectorAll('.recipe-fav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const recipeId = btn.getAttribute('data-recipe-id');
-      toggleFavorite(recipeId);
+      btn.disabled = true;
+      await toggleFavorite(recipeId);
+      btn.disabled = false;
+      // Re-renders either way: on failure toggleFavorite has already rolled
+      // the cache back, so the star returns to its true state rather than
+      // showing a change that never reached the database.
       if (onToggle) onToggle();
+    });
+  });
+}
+
+/**
+ * Deletes a recipe from the shared book.
+ *
+ * The recipe book had no delete at all, so a generated recipe nobody liked
+ * stayed in the list for good. RLS allows either partner to delete (the book
+ * is shared by design), so this does not filter on created_by.
+ *
+ * @param {string} recipeId
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteRecipe(recipeId) {
+  if (!recipeId) return { success: false, error: 'No recipe given.' };
+
+  const user = getCurrentUser();
+  if (!user) return { success: false, error: 'You must be signed in to delete a recipe.' };
+
+  const { error } = await supabase.from('recipes').delete().eq('id', recipeId);
+  if (error) return { success: false, error: 'Could not delete that recipe.' };
+
+  // The favourites row goes with it via the recipe_id foreign key's cascade;
+  // this just keeps the in-memory cache honest without a refetch.
+  getFavorites().delete(recipeId);
+
+  return { success: true };
+}
+
+/**
+ * Attaches delete handlers to the recipe cards in a container.
+ * @param {HTMLElement} listEl
+ * @param {() => void} onDeleted
+ */
+export function attachDeleteHandlers(listEl, onDeleted) {
+  listEl.querySelectorAll('.recipe-delete-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const recipeId = btn.getAttribute('data-recipe-id');
+      const title = btn.getAttribute('data-recipe-title') || 'this recipe';
+      // Shared book, no undo — so it asks.
+      if (!window.confirm(`Delete “${title}” from the recipe book?`)) return;
+
+      btn.disabled = true;
+      const result = await deleteRecipe(recipeId);
+      if (!result.success) {
+        btn.disabled = false;
+        return;
+      }
+      if (onDeleted) onDeleted(recipeId);
     });
   });
 }
@@ -380,6 +476,10 @@ export async function initRecipeBook(container) {
   if (!user) return;
 
   try {
+    // Favourites first: renderRecipeBook reads them synchronously from the
+    // cache, so fetching after would paint every star as empty on first load.
+    await fetchFavorites(user.id);
+
     const result = await fetchRecipeBook();
     if (result.success) {
       const recipes = sortRecipesByDate(result.data);

@@ -14,14 +14,17 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock the supabase client
+// Mock the supabase client. `from` is a spy so the favourites tests can swap
+// in a table stub; the default keeps the original behaviour for the rest.
+const supabaseMock = { from: vi.fn() };
+const defaultFrom = () => ({
+  insert: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }),
+  select: () => ({ order: () => ({ overlaps: () => ({ data: [], error: null }) }) }),
+});
+supabaseMock.from.mockImplementation(defaultFrom);
+
 vi.mock('../js/supabase-client.js', () => ({
-  supabase: {
-    from: () => ({
-      insert: () => ({ select: () => ({ single: () => ({ data: null, error: null }) }) }),
-      select: () => ({ order: () => ({ overlaps: () => ({ data: [], error: null }) }) }),
-    }),
-  },
+  supabase: supabaseMock,
 }));
 
 // Mock app-shell getCurrentUser
@@ -30,14 +33,19 @@ vi.mock('../js/app-shell.js', () => ({
   getPartner: () => ({ id: 'user-rebecca', display_name: 'Rebecca' }),
 }));
 
-import {
+// Imported dynamically, not statically: a static import is hoisted above the
+// `supabaseMock` declaration above, so the module under test would load before
+// the mock object exists. The rest of the suites here use the same pattern.
+const {
   filterRecipes,
   sortRecipesByDate,
   extractAllTags,
   isFavorite,
   toggleFavorite,
-  loadFavorites,
-} from '../js/recipe-book.js';
+  fetchFavorites,
+  getFavorites,
+  clearFavoritesCache,
+} = await import('../js/recipe-book.js');
 
 // --- Test Data ---
 
@@ -291,65 +299,149 @@ describe('Recipe Book — extractAllTags()', () => {
   });
 });
 
-describe('Recipe Book — favorites (localStorage)', () => {
+describe('Recipe Book — favourites (per person, in the database)', () => {
+  // These lived in localStorage, which made them per-browser rather than
+  // per-person: starring a recipe on the laptop left it unstarred on the
+  // phone, and clearing site data wiped them.
+  let rows;
+
+  /** Stubs public.recipe_favorites as an in-memory table. */
+  function stubFavouritesTable({ writeError = null, readError = null } = {}) {
+    supabaseMock.from.mockImplementation((table) => {
+      if (table !== 'recipe_favorites') return defaultFrom();
+      return {
+        select: () => ({
+          eq: (_col, userId) => Promise.resolve({
+            data: readError ? null : rows.filter(r => r.user_id === userId),
+            error: readError,
+          }),
+        }),
+        upsert: (row) => {
+          if (!writeError && !rows.some(r =>
+            r.user_id === row.user_id && r.recipe_id === row.recipe_id)) {
+            rows.push(row);
+          }
+          return Promise.resolve({ error: writeError });
+        },
+        delete: () => ({
+          eq: (_c1, userId) => ({
+            eq: (_c2, recipeId) => {
+              if (!writeError) {
+                rows = rows.filter(r =>
+                  !(r.user_id === userId && r.recipe_id === recipeId));
+              }
+              return Promise.resolve({ error: writeError });
+            },
+          }),
+        }),
+      };
+    });
+  }
+
   beforeEach(() => {
-    localStorage.clear();
+    rows = [];
+    clearFavoritesCache();
+    supabaseMock.from.mockImplementation(defaultFrom);
   });
 
   afterEach(() => {
-    localStorage.clear();
+    clearFavoritesCache();
+    supabaseMock.from.mockImplementation(defaultFrom);
   });
 
-  it('isFavorite returns false for unfavorited recipe', () => {
+  it('isFavorite is false for an unfavourited recipe', () => {
     expect(isFavorite('some-recipe-id')).toBe(false);
   });
 
-  it('toggleFavorite adds a recipe to favorites', () => {
-    const result = toggleFavorite('recipe-1');
-    expect(result).toBe(true);
+  it('toggleFavorite writes a row', async () => {
+    stubFavouritesTable();
+    const result = await toggleFavorite('recipe-1');
+
+    expect(result).toEqual({ success: true, favorite: true });
     expect(isFavorite('recipe-1')).toBe(true);
+    expect(rows).toEqual([{ user_id: 'user-jamall', recipe_id: 'recipe-1' }]);
   });
 
-  it('toggleFavorite removes a recipe from favorites', () => {
-    toggleFavorite('recipe-1'); // add
-    const result = toggleFavorite('recipe-1'); // remove
-    expect(result).toBe(false);
+  it('toggleFavorite removes the row again', async () => {
+    stubFavouritesTable();
+    await toggleFavorite('recipe-1');
+    const result = await toggleFavorite('recipe-1');
+
+    expect(result).toEqual({ success: true, favorite: false });
+    expect(isFavorite('recipe-1')).toBe(false);
+    expect(rows).toEqual([]);
+  });
+
+  it('survives a device it has never run on', async () => {
+    // The whole point of moving off localStorage: a favourite starred
+    // elsewhere is present on first load here.
+    rows = [{ user_id: 'user-jamall', recipe_id: 'recipe-from-the-laptop' }];
+    stubFavouritesTable();
+
+    await fetchFavorites('user-jamall');
+    expect(isFavorite('recipe-from-the-laptop')).toBe(true);
+  });
+
+  it('keeps each person’s favourites separate', async () => {
+    rows = [
+      { user_id: 'user-jamall', recipe_id: 'recipe-1' },
+      { user_id: 'user-rebecca', recipe_id: 'recipe-2' },
+    ];
+    stubFavouritesTable();
+
+    await fetchFavorites('user-jamall');
+    expect(isFavorite('recipe-1')).toBe(true);
+    expect(isFavorite('recipe-2')).toBe(false);
+
+    await fetchFavorites('user-rebecca');
+    expect(isFavorite('recipe-2')).toBe(true);
     expect(isFavorite('recipe-1')).toBe(false);
   });
 
-  it('favorites are independent per user', () => {
-    // Toggle favorite for current user (user-jamall)
-    toggleFavorite('recipe-1');
+  it('rolls the star back when the write fails', async () => {
+    // A star that stays lit after a failed write is a lie about saved state.
+    stubFavouritesTable({ writeError: { message: 'offline' } });
+
+    const result = await toggleFavorite('recipe-1');
+    expect(result).toEqual({ success: false, favorite: false });
+    expect(isFavorite('recipe-1')).toBe(false);
+  });
+
+  it('does not blank the cache when the read fails', async () => {
+    stubFavouritesTable();
+    await toggleFavorite('recipe-1');
     expect(isFavorite('recipe-1')).toBe(true);
 
-    // Load favorites for a different user — should be empty
-    const partnerFavs = loadFavorites('user-rebecca');
-    expect(partnerFavs.has('recipe-1')).toBe(false);
+    // Showing everything as unstarred would invite re-starring what is
+    // already starred, and read as data loss.
+    stubFavouritesTable({ readError: { message: 'offline' } });
+    await fetchFavorites('user-jamall');
+    expect(isFavorite('recipe-1')).toBe(true);
   });
 
-  it('loadFavorites returns empty set for new user', () => {
-    const favs = loadFavorites('brand-new-user');
-    expect(favs.size).toBe(0);
+  it('favouriting twice does not write two rows', async () => {
+    // The (user_id, recipe_id) primary key makes this idempotent, so a double
+    // tap or an offline replay cannot duplicate.
+    stubFavouritesTable();
+    await toggleFavorite('recipe-1');
+    rows.push(...[]);
+    await fetchFavorites('user-jamall');
+    await toggleFavorite('recipe-1');
+    await toggleFavorite('recipe-1');
+
+    expect(rows.filter(r => r.recipe_id === 'recipe-1')).toHaveLength(1);
   });
 
-  it('loadFavorites handles corrupted localStorage data', () => {
-    localStorage.setItem('recipe_favorites_user-jamall', 'not-valid-json{{{');
-    const favs = loadFavorites('user-jamall');
-    expect(favs.size).toBe(0);
-  });
+  it('several recipes can be favourited independently', async () => {
+    stubFavouritesTable();
+    await toggleFavorite('recipe-a');
+    await toggleFavorite('recipe-b');
+    await toggleFavorite('recipe-c');
+    await toggleFavorite('recipe-b');
 
-  it('multiple recipes can be favorited independently', () => {
-    toggleFavorite('recipe-a');
-    toggleFavorite('recipe-b');
-    toggleFavorite('recipe-c');
-
-    expect(isFavorite('recipe-a')).toBe(true);
-    expect(isFavorite('recipe-b')).toBe(true);
-    expect(isFavorite('recipe-c')).toBe(true);
-
-    toggleFavorite('recipe-b'); // remove
     expect(isFavorite('recipe-a')).toBe(true);
     expect(isFavorite('recipe-b')).toBe(false);
     expect(isFavorite('recipe-c')).toBe(true);
+    expect(getFavorites().size).toBe(2);
   });
 });

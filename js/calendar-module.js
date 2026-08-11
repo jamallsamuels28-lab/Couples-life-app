@@ -320,6 +320,122 @@ export async function updateEvent(eventId, changes) {
   return { success: true, event: data };
 }
 
+// --- Single-occurrence edits (§1.2) ---
+
+/**
+ * Cancels one occurrence of a recurring series by adding an exdate.
+ *
+ * The schema has carried `exdates` since migration 0004 and expandRecurrence
+ * has always honoured them, but nothing ever wrote one — so "delete just this
+ * Tuesday" had no way to be expressed and the only option was killing the
+ * whole series.
+ *
+ * @param {string} seriesId - the id of the seed event, not the instance
+ * @param {string} originalStart - ISO timestamp of the occurrence to cancel
+ */
+export async function cancelOccurrence(seriesId, originalStart) {
+  if (!seriesId || !originalStart) {
+    return { success: false, errors: { _form: 'Which occurrence is not clear.' } };
+  }
+
+  const user = getCurrentUser();
+  if (!user) {
+    return { success: false, errors: { _form: 'You must be signed in to change events' } };
+  }
+
+  const { data: series, error: readError } = await supabase
+    .from('events').select('exdates').eq('id', seriesId).single();
+
+  if (readError || !series) {
+    return { success: false, errors: { _form: 'Could not find that series.' } };
+  }
+
+  const stamp = new Date(originalStart);
+  if (Number.isNaN(stamp.getTime())) {
+    return { success: false, errors: { _form: 'That occurrence has no valid date.' } };
+  }
+
+  // Already cancelled — treat as success so a double tap is harmless.
+  const existing = series.exdates || [];
+  if (existing.some(d => new Date(d).getTime() === stamp.getTime())) {
+    return { success: true, alreadyCancelled: true };
+  }
+
+  // Read-modify-write, so two people cancelling different occurrences of the
+  // same series within the same instant could lose one of the two. The window
+  // is milliseconds and the recovery is to cancel it again; the alternative is
+  // a Postgres function purely to array_append, which is more machinery than
+  // the risk justifies for two users.
+  const { error } = await supabase
+    .from('events')
+    .update({ exdates: [...existing, stamp.toISOString()] })
+    .eq('id', seriesId);
+
+  if (error) {
+    return { success: false, errors: { _form: 'Could not cancel that occurrence.' } };
+  }
+  return { success: true };
+}
+
+/**
+ * Changes one occurrence of a series without touching the rest of it.
+ *
+ * Written as a separate row pointing back at the series with `override_of`,
+ * plus `original_start` recording which occurrence it replaces. Editing the
+ * series row directly would move every past occurrence too — the same class of
+ * bug as updating a shift pattern in place.
+ */
+export async function updateOccurrence(instance, changes) {
+  const seriesId = instance?._originalEventId || instance?.override_of;
+  const originalStart = instance?._originalStart || instance?.original_start;
+
+  if (!seriesId || !originalStart) {
+    return { success: false, errors: { _form: 'Which occurrence is not clear.' } };
+  }
+
+  const user = getCurrentUser();
+  if (!user) {
+    return { success: false, errors: { _form: 'You must be signed in to update events' } };
+  }
+
+  // An occurrence that already has an override row is edited in place rather
+  // than accumulating a second override for the same slot.
+  if (instance._isOverride && instance.id) {
+    return updateEvent(instance.id, changes);
+  }
+
+  const start = changes.start_time || instance.start_time;
+  const end = changes.end_time || instance.end_time;
+  const validation = validateEvent({
+    title: changes.title ?? instance.title,
+    start_time: start,
+    end_time: end,
+  });
+  if (!validation.valid) return { success: false, errors: validation.errors };
+
+  const { data, error } = await supabase
+    .from('events')
+    .insert({
+      user_id: user.id,
+      title: (changes.title ?? instance.title).trim(),
+      start_time: new Date(start).toISOString(),
+      end_time: new Date(end).toISOString(),
+      is_busy: changes.is_busy ?? instance.is_busy ?? true,
+      // The override is a single dated event; carrying the series rrule would
+      // expand it into a second series.
+      rrule: null,
+      override_of: seriesId,
+      original_start: new Date(originalStart).toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { success: false, errors: { _form: 'Could not change that occurrence.' } };
+  }
+  return { success: true, event: data };
+}
+
 // --- Event Deletion ---
 
 /**
@@ -359,7 +475,7 @@ export function renderEventForm(container) {
   container.innerHTML = `
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">New Event</h3>
+        <h3 class="card-title" id="event-form-title">New Event</h3>
       </div>
       <form id="event-form" class="card-body" novalidate>
         <div class="input-group">
@@ -419,7 +535,8 @@ export function renderEventForm(container) {
         <div id="event-form-error" class="input-error-msg" aria-live="polite"></div>
 
         <div class="card-footer">
-          <button type="submit" class="btn btn-primary">Create Event</button>
+          <button type="submit" class="btn btn-primary" id="event-submit">Create Event</button>
+          <button type="button" class="btn btn-ghost" id="event-cancel-edit" hidden>Cancel</button>
         </div>
       </form>
     </div>
@@ -427,6 +544,87 @@ export function renderEventForm(container) {
 
   const form = container.querySelector('#event-form');
   form.addEventListener('submit', handleFormSubmit);
+  container.querySelector('#event-cancel-edit').addEventListener('click', () => {
+    stopEditingEvent(form);
+  });
+}
+
+/**
+ * What the form is currently editing, if anything.
+ *
+ * `scope` is 'series' or 'occurrence'. The distinction cannot be inferred at
+ * submit time — the same instance can legitimately be edited either way — so
+ * it is captured when the user chooses and carried through.
+ */
+let editingContext = null;
+
+/** A Date as the local 'YYYY-MM-DDTHH:mm' a datetime-local input expects.
+ *  Never toISOString(): that answers in UTC and would show a 22:30 night shift
+ *  as 21:30 during BST. */
+function toLocalDateTimeInput(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    + `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Puts the form into edit mode for one event or occurrence. */
+export function beginEditingEvent(instance, scope, container = document) {
+  const form = container.querySelector('#event-form');
+  if (!form || !instance) return false;
+
+  editingContext = { instance, scope };
+  // Lets the realtime handler warn if the partner changes this same event
+  // while it is open. The plumbing existed; nothing ever set it.
+  setCurrentlyEditingEventId(instance._originalEventId || instance.id);
+
+  form.elements.title.value = instance.title || '';
+  form.elements.start_time.value = toLocalDateTimeInput(instance.start_time);
+  form.elements.end_time.value = toLocalDateTimeInput(instance.end_time);
+  // Editing a single occurrence must not offer to change the series rule.
+  form.elements.rrule.value = scope === 'series' ? (instance.rrule || '') : '';
+  form.elements.rrule.disabled = scope === 'occurrence';
+
+  const title = container.querySelector('#event-form-title');
+  const submit = container.querySelector('#event-submit');
+  const cancel = container.querySelector('#event-cancel-edit');
+  if (title) {
+    title.textContent = scope === 'occurrence' ? 'Edit this occurrence' : 'Edit event';
+  }
+  if (submit) submit.textContent = 'Save changes';
+  if (cancel) cancel.hidden = false;
+
+  clearFormErrors(form);
+  // Cosmetic. Guarded so that a environment without it cannot stop the form
+  // entering edit mode, which is the part that matters.
+  form.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+  form.elements.title.focus();
+  return true;
+}
+
+/** Returns the form to creating a new event. */
+export function stopEditingEvent(form) {
+  editingContext = null;
+  setCurrentlyEditingEventId(null);
+  if (!form) return;
+
+  form.reset();
+  form.elements.rrule.disabled = false;
+  clearFormErrors(form);
+
+  const root = form.closest('.card') || document;
+  const title = root.querySelector('#event-form-title');
+  const submit = root.querySelector('#event-submit');
+  const cancel = root.querySelector('#event-cancel-edit');
+  if (title) title.textContent = 'New Event';
+  if (submit) submit.textContent = 'Create Event';
+  if (cancel) cancel.hidden = true;
+}
+
+/** Exposed for tests. */
+export function getEditingContext() {
+  return editingContext;
 }
 
 /**
@@ -445,6 +643,32 @@ async function handleFormSubmit(e) {
     rrule: form.elements.rrule.value || null,
   };
 
+  if (editingContext) {
+    const { instance, scope } = editingContext;
+
+    const result = scope === 'occurrence'
+      // Only this one date moves; the series keeps its own times.
+      ? await updateOccurrence(instance, {
+          title: eventData.title,
+          start_time: eventData.start_time,
+          end_time: eventData.end_time,
+        })
+      : await updateEvent(instance._originalEventId || instance.id, eventData);
+
+    if (!result.success) {
+      showFormErrors(form, result.errors);
+      return;
+    }
+
+    stopEditingEvent(form);
+    showToast(
+      scope === 'occurrence' ? 'This occurrence updated' : 'Event updated',
+      'success'
+    );
+    refreshCalendarView();
+    return;
+  }
+
   const result = await createEvent(eventData);
 
   if (!result.success) {
@@ -455,6 +679,7 @@ async function handleFormSubmit(e) {
   // Success — clear form and show toast
   form.reset();
   showToast('Event created successfully', 'success');
+  refreshCalendarView();
 }
 
 // --- Error Display ---
@@ -998,8 +1223,9 @@ export async function renderCalendarDashboard(mount) {
 
   mount.querySelector('#free-window-mount').innerHTML =
     renderFreeWindowList(weekWindows);
-  mount.querySelector('#event-list-mount').innerHTML =
-    renderEventList(instances, user, partnerProfile);
+  const eventListMount = mount.querySelector('#event-list-mount');
+  eventListMount.innerHTML = renderEventList(instances, user, partnerProfile);
+  wireEventList(eventListMount);
 }
 
 /**
@@ -1064,7 +1290,12 @@ export function renderEventList(instances, user, partnerProfile) {
     (a, b) => new Date(a.start_time) - new Date(b.start_time)
   );
 
-  const items = sorted.slice(0, 20).map(ev => {
+  const visible = sorted.slice(0, 20);
+  // Held for the wiring pass, so an event object never has to be serialised
+  // into a DOM attribute and parsed back out.
+  lastRenderedInstances = visible;
+
+  const items = visible.map((ev, index) => {
     const start = new Date(ev.start_time);
     const end = new Date(ev.end_time);
     const isUsers = user && ev.user_id === user.id;
@@ -1074,6 +1305,7 @@ export function renderEventList(instances, user, partnerProfile) {
     const ownerName = isUsers
       ? displayName(user, 'You')
       : displayName(partnerProfile, 'Partner');
+    const repeats = Boolean(ev._isRecurrenceInstance || ev.rrule);
 
     return `
       <div class="event-item ${ownerClass}">
@@ -1082,11 +1314,122 @@ export function renderEventList(instances, user, partnerProfile) {
         </span>
         <span class="event-title">${escapeHtml(ev.title || 'Untitled')}</span>
         <span class="event-owner">${escapeHtml(ownerName)}</span>
+        ${isUsers ? `
+          <span class="event-actions">
+            <button type="button" class="icon-btn" data-edit="${index}"
+              aria-label="Edit ${escapeHtml(ev.title || 'event')}${repeats ? ', repeating' : ''}">Edit</button>
+            <button type="button" class="icon-btn" data-delete="${index}"
+              aria-label="Delete ${escapeHtml(ev.title || 'event')}${repeats ? ', repeating' : ''}">Delete</button>
+          </span>
+        ` : ''}
       </div>
     `;
   }).join('');
 
   return `<div class="event-list">${items}</div>`;
+}
+
+// The instances behind the most recent renderEventList call.
+let lastRenderedInstances = [];
+
+/**
+ * Asks whether an action applies to one occurrence or the whole series.
+ *
+ * Only shown for repeating events — asking for a one-off would be a pointless
+ * extra tap. Uses a native <dialog> so focus trapping and Escape come from the
+ * platform rather than from hand-rolled key handling.
+ *
+ * @returns {Promise<'occurrence'|'series'|null>} null if dismissed
+ */
+export function askRecurrenceScope(verb, title) {
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'scope-dialog';
+    dialog.innerHTML = `
+      <form method="dialog" class="scope-dialog-body">
+        <h3 class="card-title">${escapeHtml(verb)} “${escapeHtml(title || 'this event')}”</h3>
+        <p class="field-hint">This event repeats. What should change?</p>
+        <div class="scope-dialog-actions">
+          <button type="submit" value="occurrence" class="btn btn-primary">Just this one</button>
+          <button type="submit" value="series" class="btn btn-secondary">The whole series</button>
+          <button type="submit" value="" class="btn btn-ghost">Cancel</button>
+        </div>
+      </form>
+    `;
+
+    document.body.appendChild(dialog);
+    dialog.addEventListener('close', () => {
+      const value = dialog.returnValue;
+      dialog.remove();
+      resolve(value === 'occurrence' || value === 'series' ? value : null);
+    });
+
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else resolve(null); // No <dialog> support: caller falls back.
+  });
+}
+
+/**
+ * Wires the edit and delete controls on the event list.
+ *
+ * updateEvent and deleteEvent have existed and been exported since the
+ * calendar was written, but nothing ever called them — there were no controls
+ * to call them from, which is why events could be created and never changed.
+ */
+export function wireEventList(mount) {
+  if (!mount) return;
+
+  mount.querySelectorAll('[data-edit]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const instance = lastRenderedInstances[Number(button.dataset.edit)];
+      if (!instance) return;
+
+      let scope = 'series';
+      if (instance._isRecurrenceInstance) {
+        scope = await askRecurrenceScope('Edit', instance.title);
+        if (!scope) return;
+      }
+      beginEditingEvent(instance, scope, document);
+    });
+  });
+
+  mount.querySelectorAll('[data-delete]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const instance = lastRenderedInstances[Number(button.dataset.delete)];
+      if (!instance) return;
+
+      let result;
+      if (instance._isRecurrenceInstance) {
+        const scope = await askRecurrenceScope('Delete', instance.title);
+        if (!scope) return;
+
+        result = scope === 'occurrence'
+          ? await cancelOccurrence(instance._originalEventId, instance._originalStart)
+          : await deleteEvent(instance._originalEventId);
+      } else {
+        // Deleting is not undoable, so it asks first.
+        if (!window.confirm(`Delete “${instance.title || 'this event'}”?`)) return;
+        result = await deleteEvent(instance.id);
+      }
+
+      if (!result.success) {
+        showToast(result.errors?._form || 'Could not delete that event', 'error');
+        return;
+      }
+
+      // The form may be sitting open on the row that just went away.
+      if (editingContext) {
+        const editedId = editingContext.instance._originalEventId || editingContext.instance.id;
+        const deletedId = instance._originalEventId || instance.id;
+        if (editedId === deletedId) {
+          stopEditingEvent(document.querySelector('#event-form'));
+        }
+      }
+
+      showToast('Event deleted', 'success');
+      refreshCalendarView();
+    });
+  });
 }
 
 // --- Formatting helpers ---
