@@ -20,3 +20,6 @@ Thumbs.db
 # Test and build output
 coverage/
 dist/
+
+# Local Claude Code settings — per-machine, not shared.
+.claude/settings.local.json

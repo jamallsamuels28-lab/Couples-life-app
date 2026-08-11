@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v8';
+const CACHE_NAME = 'couples-life-v12';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -16,10 +16,13 @@ const APP_SHELL_ASSETS = [
   './css/calendar-views.css',
   './css/modules.css',
   './js/app-shell.js',
+  './js/barcode-scanner.js',
   './js/calendar-module.js',
   './js/calendar-views.js',
   './js/colour-picker.js',
   './js/device-sync.js',
+  './js/exercise-cues.js',
+  './js/exercise-library.js',
   './js/dietary-preferences.js',
   './js/fitness-engine.js',
   './js/fitness-module.js',
