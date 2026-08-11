@@ -22,12 +22,30 @@
   --font-ui: 'General Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-num: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --t-xs: 0.6875rem;   /* 11px */
+  /* DEVIATION from .kiro/design-system.html:23, which sets --t-xs to
+     0.6875rem (11px). Eleven pixels is unreadable on a phone held at arm's
+     length, and --t-xs is what carries field hints, form status and the
+     "nothing logged" states — the text you most need when a form is not
+     behaving. Raised to 12px, and raised again on small viewports below. */
+  --t-xs: 0.75rem;     /* 12px */
   --t-sm: 0.8125rem;   /* 13px */
   --t-base: 0.9375rem; /* 15px */
   --t-lg: 1.125rem;    /* 18px */
   --t-xl: 1.5rem;      /* 24px */
   --t-2xl: 2rem;       /* 32px */
+}
+
+/* ---------- Small viewports ----------
+   The whole scale steps up on a phone. --t-base reaching 16px is not a taste
+   call: iOS Safari zooms the page when a focused input is under 16px, which
+   is why tapping the barcode field threw the layout sideways. */
+@media (max-width: 640px) {
+  :root {
+    --t-xs: 0.8125rem;  /* 13px */
+    --t-sm: 0.875rem;   /* 14px */
+    --t-base: 1rem;     /* 16px */
+    --t-lg: 1.1875rem;  /* 19px */
+  }
 }
 
 /* ---------- Spacing (multiples of 4px) ---------- */
@@ -63,8 +81,14 @@
   --line: #2A2A2F;
   --line-strong: #3A3A41;
   --ink: #ECECEA;
-  --ink-2: #9A9A96;
-  --ink-3: #6A6A67;
+  /* DEVIATION from .kiro/design-system.html:33 (--ink-2 #9A9A96, --ink-3
+     #6A6A67). The design system's --ink-3 measures 3.3:1 against --surface
+     and 3.0:1 against --surface-2 — below the 4.5:1 WCAG AA floor, and it is
+     the colour used for every placeholder and field hint. Raised to 4.7:1
+     against --surface-2, its worst case. --ink-2 lifted alongside it so the
+     three-step ink hierarchy stays distinguishable. */
+  --ink-2: #A8A8A4;
+  --ink-3: #8A8A86;
   --id-l: 0.70;
   --id-c: 0.125;
   --wash: 0.20;
@@ -80,8 +104,10 @@
   --line: #E3E3E0;
   --line-strong: #CFCFCB;
   --ink: #18181A;
-  --ink-2: #666662;
-  --ink-3: #93938E;
+  /* Same deviation as dark, mirrored. Design system had --ink-3 #93938E,
+     which is 3.1:1 on white and 2.8:1 on --surface-2. */
+  --ink-2: #565652;
+  --ink-3: #6E6E6A;
   --id-l: 0.58;
   --id-c: 0.125;
   --wash: 0.14;

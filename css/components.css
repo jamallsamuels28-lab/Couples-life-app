@@ -479,6 +479,40 @@
 }
 
 /* ============================================================
+   TOUCH TARGETS
+   A 24px control is fine with a mouse and a coin-toss with a thumb. Apple
+   asks for 44px, Android for 48dp. The visual size stays as designed — the
+   hit area is grown with a pseudo-element so nothing reflows.
+   ============================================================ */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 36px;
+  }
+
+  .icon-btn,
+  .meal-entry-remove,
+  .entry-remove {
+    position: relative;
+  }
+
+  .icon-btn::after,
+  .meal-entry-remove::after,
+  .entry-remove::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* ============================================================
    REDUCED MOTION — disable transitions on components
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
