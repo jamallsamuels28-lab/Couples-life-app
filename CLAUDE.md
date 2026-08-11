@@ -159,6 +159,28 @@ Known violation: `.input-error-msg` hardcodes `#e55`, outside the token system.
 
 ---
 
+## Next up, in order
+
+1. **All-day events.** `events` has only `start_time` / `end_time`, so a
+   birthday or a day off has to occupy a specific time slot. Needs a migration,
+   changes to the views, and changes to `free-windows.js`. Do this one first
+   and on its own: it is the only item here that can break availability maths,
+   which is what the whole calendar exists for. An all-day event is not busy
+   time in the same sense a shift is — decide that explicitly rather than
+   letting the overlap engine infer it.
+
+2. **Add-event button in day view.** There is no way to create an event for a
+   particular day; every event starts from the blank form at the bottom of the
+   page. Tapping a month cell already navigates to day view, so the affordance
+   belongs there.
+
+3. **Shared vs personal events, with identity colours.** The two hues exist in
+   the design system and the ribbon already uses them; events do not.
+
+Also unchecked: whether the Fitness tab has the same shape of bug the Food tab
+did, where an incomplete profile removed the whole feature rather than just the
+part that needed the profile. Worth signing in as the other person and looking.
+
 ## Current state
 
 Working: calendar with sleep-aware free windows, month/week/day views, shift
