@@ -1957,3 +1957,61 @@
 .cue-group--faults .cue-list {
   color: var(--ink);
 }
+
+/* ============================================================
+   RECURRENCE PICKER
+   Replaces a raw RRULE text box. Weekday chips are checkboxes styled as
+   toggles, so keyboard and screen-reader behaviour comes from the platform.
+   ============================================================ */
+.day-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.day-chip {
+  position: relative;
+  cursor: pointer;
+}
+
+.day-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.day-chip span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 var(--s2);
+  font-size: var(--t-xs);
+  border: var(--hair) solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.day-chip input:checked + span {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.day-chip input:focus-visible + span {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.recurrence-summary {
+  margin-top: var(--s3);
+  color: var(--ink-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-chip span { transition: none; }
+}

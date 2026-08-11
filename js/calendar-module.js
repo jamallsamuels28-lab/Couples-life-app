@@ -13,6 +13,7 @@ import { renderScheduleEditor } from './schedule-editor.js';
 import { renderCalendarViews, visibleRange } from './calendar-views.js';
 import { renderGoogleSyncPanel, startAutoSync } from './google-sync.js';
 import { escapeHtml, displayName, chevronSvg } from './ui-helpers.js';
+import { renderRecurrencePicker, wireRecurrencePicker, describeRRule } from './recurrence-picker.js';
 import { renderColourPicker } from './colour-picker.js';
 
 // --- Validation ---
@@ -519,18 +520,8 @@ export function renderEventForm(container) {
           <span id="event-end-error" class="input-error-msg" aria-live="polite"></span>
         </div>
 
-        <div class="input-group">
-          <label class="input-label" for="event-rrule">Recurrence rule (optional)</label>
-          <input
-            type="text"
-            id="event-rrule"
-            name="rrule"
-            class="input"
-            placeholder="e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
-            aria-describedby="event-rrule-error"
-          />
-          <span id="event-rrule-error" class="input-error-msg" aria-live="polite"></span>
-        </div>
+        ${renderRecurrencePicker()}
+        <span id="event-rrule-error" class="input-error-msg" aria-live="polite"></span>
 
         <div id="event-form-error" class="input-error-msg" aria-live="polite"></div>
 
@@ -544,6 +535,9 @@ export function renderEventForm(container) {
 
   const form = container.querySelector('#event-form');
   form.addEventListener('submit', handleFormSubmit);
+  // Held on the form so beginEditingEvent can load an existing rule back into
+  // the controls rather than into a text box nobody can read.
+  form._recurrence = wireRecurrencePicker(container);
   container.querySelector('#event-cancel-edit').addEventListener('click', () => {
     stopEditingEvent(form);
   });
@@ -583,7 +577,14 @@ export function beginEditingEvent(instance, scope, container = document) {
   form.elements.start_time.value = toLocalDateTimeInput(instance.start_time);
   form.elements.end_time.value = toLocalDateTimeInput(instance.end_time);
   // Editing a single occurrence must not offer to change the series rule.
-  form.elements.rrule.value = scope === 'series' ? (instance.rrule || '') : '';
+  const rule = scope === 'series' ? (instance.rrule || '') : '';
+  if (form._recurrence) form._recurrence.setValue(rule);
+  else form.elements.rrule.value = rule;
+
+  // Hidden rather than disabled for an occurrence: there is no repeat to edit
+  // on a single date, and showing greyed-out controls invites the attempt.
+  const picker = container.querySelector('#recurrence-picker');
+  if (picker) picker.hidden = scope === 'occurrence';
   form.elements.rrule.disabled = scope === 'occurrence';
 
   const title = container.querySelector('#event-form-title');
@@ -611,6 +612,9 @@ export function stopEditingEvent(form) {
 
   form.reset();
   form.elements.rrule.disabled = false;
+  if (form._recurrence) form._recurrence.setValue('');
+  const picker = form.querySelector('#recurrence-picker');
+  if (picker) picker.hidden = false;
   clearFormErrors(form);
 
   const root = form.closest('.card') || document;
