@@ -541,17 +541,22 @@ export async function renderDiary(mount) {
     partnerProfile ? loadNutritionContext(partnerProfile.id, currentDateKey) : null,
   ]);
 
-  if (!mine.targets) {
-    mount.innerHTML = renderSetupPrompt(mine);
-    return;
-  }
-
-  const remaining = remainingMacros(mine.targets, mine.entries);
+  // Without a complete profile there is no honest target to show — but that is
+  // no reason to stop someone logging food. This used to `return` here, which
+  // took the meal sections, the add-food form and the barcode scanner with it,
+  // so a partner who had not filled in their height could not record a single
+  // meal. What you ate is a fact; the target is the only thing that needs the
+  // profile.
+  const hasTargets = Boolean(mine.targets);
+  const remaining = hasTargets ? remainingMacros(mine.targets, mine.entries) : null;
 
   mount.innerHTML = `
-    ${renderRemainingCard(mine, remaining)}
-    ${renderMacroBars(mine.targets, remaining)}
-    ${theirs?.targets ? renderPartnerSplit(mine, theirs, partnerProfile, user) : ''}
+    ${hasTargets
+      ? `${renderRemainingCard(mine, remaining)}
+         ${renderMacroBars(mine.targets, remaining)}
+         ${theirs?.targets ? renderPartnerSplit(mine, theirs, partnerProfile, user) : ''}`
+      : `${renderSetupPrompt(mine)}
+         ${renderConsumedCard(mine.entries)}`}
     ${renderMealSections(mine.entries)}
     ${renderAddForm()}
     ${mine.plateau.plateaued ? `<div class="notice notice--warning"><p>${escapeHtml(mine.plateau.reason)}</p></div>` : ''}
@@ -560,6 +565,16 @@ export async function renderDiary(mount) {
 
   wireAddForm(mount, user.id, mine);
   wireEntryDeletion(mount, user.id);
+
+  // The prompt named what was missing but gave no way to supply it. The
+  // settings live in a collapsed disclosure further down the same view, which
+  // is easy to miss on a phone.
+  mount.querySelector('#open-nutrition-settings')?.addEventListener('click', () => {
+    const disclosure = document.querySelector('#nutrition-settings-disclosure');
+    if (!disclosure) return;
+    disclosure.open = true;
+    disclosure.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+  });
 }
 
 function renderSetupPrompt(context) {
@@ -578,6 +593,51 @@ function renderSetupPrompt(context) {
           A guessed calorie target is worse than none — every macro below it
           inherits the error.
         </p>
+        <p class="field-hint">
+          You can log food in the meantime; only the targets are waiting.
+        </p>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="open-nutrition-settings">
+            Fill these in
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Today's totals with no target to compare against.
+ *
+ * Shown in place of the remaining-macros card when the profile is incomplete.
+ * Consumed is a fact that needs no profile; "remaining" would need a target,
+ * and inventing one is what §0.4 exists to prevent.
+ */
+function renderConsumedCard(entries) {
+  const total = sumMacros(entries || []);
+
+  return `
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Eaten today</h3></div>
+      <div class="card-body">
+        <div class="macro-grid">
+          <div class="macro-item">
+            <span class="macro-label">Calories</span>
+            <span class="macro-value num">${Math.round(total.kcal)}</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-label">Protein</span>
+            <span class="macro-value num">${Math.round(total.protein)} g</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-label">Carbs</span>
+            <span class="macro-value num">${Math.round(total.carbs)} g</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-label">Fat</span>
+            <span class="macro-value num">${Math.round(total.fat)} g</span>
+          </div>
+        </div>
       </div>
     </div>
   `;

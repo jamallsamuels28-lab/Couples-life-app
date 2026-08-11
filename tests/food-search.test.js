@@ -20,7 +20,7 @@ vi.mock('../js/app-shell.js', () => ({
   getPartner: vi.fn(() => null),
 }));
 
-const { searchFoods, searchOpenFoodFacts, validateCustomFood, createCustomFood } =
+const { searchFoods, searchOpenFoodFacts, validateCustomFood, createCustomFood, renderDiary } =
   await import('../js/food-diary.js');
 
 /** Stubs the `foods` table returning `rows` from an ilike query. */
@@ -252,5 +252,67 @@ describe('createCustomFood', () => {
     expect(captured[0].verified).toBe(false);
     expect(captured[0].per_100g.kcal).toBe(250);
     expect(captured[0].created_by).toBe('user-a');
+  });
+});
+
+describe('renderDiary with an incomplete profile', () => {
+  // The bug: a partner who had not filled in height, sex, date of birth and a
+  // weigh-in saw no calorie counter, no meal sections, no add-food form and no
+  // barcode scanner. renderDiary returned early on a missing target and took
+  // the entire diary with it, so she could not log a single meal.
+  /**
+   * Every table empty: no profile, no weigh-ins, no entries. This is exactly
+   * the state a second account is in before anyone fills the settings in.
+   * Chainable so any query shape resolves to nothing rather than throwing.
+   */
+  function stubEmptyTables() {
+    const empty = Promise.resolve({ data: [], error: null });
+    const none = Promise.resolve({ data: null, error: null });
+    const chain = () => new Proxy(function () {}, {
+      get(_target, prop) {
+        if (prop === 'then') return empty.then.bind(empty);
+        if (prop === 'single' || prop === 'maybeSingle') return () => none;
+        return () => chain();
+      },
+      apply() { return chain(); },
+    });
+    supabaseMock.from.mockImplementation(() => chain());
+  }
+
+  it('still offers the add-food form and scanner without a profile', async () => {
+    stubEmptyTables();
+    const mount = document.createElement('div');
+    document.body.appendChild(mount);
+
+    await renderDiary(mount);
+
+    expect(mount.querySelector('#food-search'), 'search box missing').not.toBeNull();
+    expect(mount.querySelector('#barcode-input'), 'barcode entry missing').not.toBeNull();
+    expect(mount.querySelector('#food-add'), 'add button missing').not.toBeNull();
+  });
+
+  it('shows what was eaten even with no target to compare against', async () => {
+    stubEmptyTables();
+    const mount = document.createElement('div');
+    await renderDiary(mount);
+    expect(mount.textContent).toMatch(/Eaten today/);
+  });
+
+  it('says what is missing and offers a way to supply it', async () => {
+    stubEmptyTables();
+    const mount = document.createElement('div');
+    await renderDiary(mount);
+
+    expect(mount.textContent).toMatch(/height/i);
+    expect(mount.querySelector('#open-nutrition-settings')).not.toBeNull();
+  });
+
+  it('does not invent a target', async () => {
+    // §0.4 — the reason the early return existed. Refusing to guess is right;
+    // refusing to let someone log food was not.
+    stubEmptyTables();
+    const mount = document.createElement('div');
+    await renderDiary(mount);
+    expect(mount.textContent).not.toMatch(/remaining/i);
   });
 });
