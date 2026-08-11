@@ -118,10 +118,31 @@ describe('lookupOpenFoodFacts', () => {
 });
 
 describe('canScanBarcode', () => {
-  it('is false when the browser has no BarcodeDetector', () => {
-    // jsdom has none, which is also true of Safari on iOS — so manual entry
-    // is the main path, not a fallback for the unlucky.
+  // This used to assert false whenever BarcodeDetector was missing, which is
+  // the case on every iPhone — so the scan button never rendered there at all.
+  // The detector is polyfilled now, so the question is whether a camera can be
+  // asked for, not whether this browser happens to ship the API.
+  it('is false without a camera API', () => {
+    // jsdom provides no navigator.mediaDevices.
     expect(canScanBarcode()).toBe(false);
+  });
+
+  it('is true where a camera can be requested, with no native BarcodeDetector', () => {
+    const originalMediaDevices = navigator.mediaDevices;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: () => Promise.resolve({}) },
+      configurable: true,
+    });
+    expect('BarcodeDetector' in window).toBe(false);
+
+    try {
+      expect(canScanBarcode()).toBe(true);
+    } finally {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: originalMediaDevices,
+        configurable: true,
+      });
+    }
   });
 });
 

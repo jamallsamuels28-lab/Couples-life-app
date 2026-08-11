@@ -31,6 +31,7 @@ import {
   plateauCheck,
 } from './nutrition-engine.js';
 import { stepKcal, trainingKcal, MET } from './fitness-engine.js';
+import { createBarcodeScanner, isCameraAvailable } from './barcode-scanner.js';
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
 const MEAL_LABELS = {
@@ -82,7 +83,93 @@ export async function fetchNutritionProfile(userId) {
   return data || null;
 }
 
-export async function searchFoods(query, historyEntries = []) {
+/**
+ * Turns one Open Food Facts product into a row shaped like our `foods` table.
+ *
+ * Shared by barcode lookup and text search so the two cannot drift apart — the
+ * per-100 g figures are taken from their fields verbatim, never interpreted,
+ * per §0.2. Returns null for anything with no energy figure: a product that
+ * logs as zero calories is worse than no result at all, because it silently
+ * flatters the day's total.
+ */
+function offProductToDraft(product, code) {
+  const n = product?.nutriments || {};
+  const per100g = {
+    kcal: Number(n['energy-kcal_100g']) || 0,
+    protein: Number(n.proteins_100g) || 0,
+    carbs: Number(n.carbohydrates_100g) || 0,
+    fat: Number(n.fat_100g) || 0,
+    fibre: Number(n.fiber_100g) || 0,
+    sugar: Number(n.sugars_100g) || 0,
+    salt: Number(n.salt_100g) || 0,
+  };
+  if (per100g.kcal <= 0) return null;
+
+  return {
+    source: 'off',
+    source_id: code,
+    barcode: code,
+    name: (product.product_name || 'Unnamed product').slice(0, 200),
+    brand: (product.brands || '').split(',')[0]?.trim() || null,
+    per_100g: per100g,
+    serving_grams: Number(product.serving_quantity) || null,
+    verified: false,
+  };
+}
+
+/**
+ * Free-text search against Open Food Facts.
+ *
+ * Results come back with `id: null` — they are not rows in our table yet. The
+ * caller saves the one the user actually picks, so browsing does not fill the
+ * shared food database with everything either of us ever typed.
+ */
+export async function searchOpenFoodFacts(query, { pageSize = 20 } = {}) {
+  const term = String(query || '').trim();
+  if (term.length < 3) return { success: true, foods: [] };
+
+  const url = 'https://world.openfoodfacts.org/cgi/search.pl'
+    + `?search_terms=${encodeURIComponent(term)}`
+    + '&search_simple=1&action=process&json=1'
+    + `&page_size=${pageSize}`
+    + '&fields=code,product_name,brands,nutriments,serving_quantity';
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return { success: false, error: 'Could not reach the food database.' };
+
+    const body = await response.json();
+    const seen = new Set();
+    const foods = [];
+
+    for (const product of body.products || []) {
+      const draft = offProductToDraft(product, String(product.code || ''));
+      if (!draft || !draft.name || draft.name === 'Unnamed product') continue;
+
+      // Supermarkets list the same item under several barcodes. Collapse on
+      // name plus brand so the list is not four rows of the same yoghurt.
+      const key = `${draft.name.toLowerCase()}|${(draft.brand || '').toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      foods.push({ ...draft, id: null });
+    }
+
+    return { success: true, foods };
+  } catch {
+    return { success: false, error: 'Could not reach the food database.' };
+  }
+}
+
+/**
+ * Search the shared food table, falling back to Open Food Facts.
+ *
+ * The local table is authoritative and ranked personally. Remote results are
+ * appended rather than merged into the ranking: they carry no log history, so
+ * scoring them against foods you actually eat would be comparing a real
+ * frequency against a zero and always burying the local hit.
+ */
+export async function searchFoods(query, historyEntries = [], { remote = true } = {}) {
   const term = String(query || '').trim();
   if (term.length < 2) return { success: true, foods: [] };
 
@@ -107,7 +194,29 @@ export async function searchFoods(query, historyEntries = []) {
   }
 
   const enriched = (data || []).map(food => ({ ...food, ...(stats.get(food.id) || {}) }));
-  return { success: true, foods: rankFoods(term, enriched).slice(0, 12) };
+  const local = rankFoods(term, enriched).slice(0, 12);
+
+  // Until the table is seeded it is empty, so without this the search box
+  // returns nothing for every term anyone will ever type.
+  if (!remote || local.length >= 8) return { success: true, foods: local, remoteUsed: false };
+
+  const off = await searchOpenFoodFacts(term);
+  if (!off.success) {
+    // A local hit plus no network still beats an error page.
+    return { success: true, foods: local, remoteUsed: false, remoteError: off.error };
+  }
+
+  const localBarcodes = new Set(local.map(f => f.barcode).filter(Boolean));
+  const localNames = new Set(local.map(f => (f.name || '').toLowerCase()));
+  const extra = off.foods.filter(f =>
+    !localBarcodes.has(f.barcode) && !localNames.has(f.name.toLowerCase())
+  );
+
+  return {
+    success: true,
+    foods: [...local, ...extra].slice(0, 20),
+    remoteUsed: extra.length > 0,
+  };
 }
 
 /** Barcode lookup bypasses ranking entirely — exact match or nothing (§3.6). */
@@ -144,35 +253,13 @@ export async function lookupOpenFoodFacts(barcode) {
       return { success: false, error: 'Not found in the food database.' };
     }
 
-    const n = body.product.nutriments || {};
-    const per100g = {
-      kcal: Number(n['energy-kcal_100g']) || 0,
-      protein: Number(n.proteins_100g) || 0,
-      carbs: Number(n.carbohydrates_100g) || 0,
-      fat: Number(n.fat_100g) || 0,
-      fibre: Number(n.fiber_100g) || 0,
-      sugar: Number(n.sugars_100g) || 0,
-      salt: Number(n.salt_100g) || 0,
-    };
-
     // A product with no energy figure is useless here and would log as zero.
-    if (per100g.kcal <= 0) {
+    const draft = offProductToDraft(body.product, code);
+    if (!draft) {
       return { success: false, error: 'That product has no nutrition data. Add it by hand.' };
     }
 
-    return {
-      success: true,
-      draft: {
-        source: 'off',
-        source_id: code,
-        barcode: code,
-        name: (body.product.product_name || 'Unnamed product').slice(0, 200),
-        brand: (body.product.brands || '').split(',')[0]?.trim() || null,
-        per_100g: per100g,
-        serving_grams: Number(body.product.serving_quantity) || null,
-        verified: false,
-      },
-    };
+    return { success: true, draft };
   } catch {
     return { success: false, error: 'Could not reach the food database.' };
   }
@@ -189,12 +276,85 @@ export async function saveFood(draft, userId) {
 }
 
 /**
+ * Validation for a hand-entered food (§0.4 — floors and caps, not optional).
+ *
+ * The caps are physical rather than stylistic. Nothing edible is more than
+ * 100 g of protein per 100 g, and pure fat is about 900 kcal per 100 g, so a
+ * figure above either is a typo — most often a per-serving number typed into a
+ * per-100 g box, which would then under-count every portion logged against it.
+ */
+export function validateCustomFood(input = {}) {
+  const errors = {};
+
+  const name = String(input.name || '').trim();
+  if (name.length < 2 || name.length > 200) {
+    errors.name = 'Give it a name between 2 and 200 characters.';
+  }
+
+  const kcal = Number(input.kcal);
+  if (!Number.isFinite(kcal) || kcal < 0 || kcal > 900) {
+    errors.kcal = 'Calories per 100 g must be between 0 and 900.';
+  }
+
+  for (const key of ['protein', 'carbs', 'fat']) {
+    const value = Number(input[key] ?? 0);
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      errors[key] = 'Grams per 100 g must be between 0 and 100.';
+    }
+  }
+
+  // Macros that cannot physically fit in 100 g of anything.
+  const bulk = (Number(input.protein) || 0) + (Number(input.carbs) || 0) + (Number(input.fat) || 0);
+  if (!errors.protein && !errors.carbs && !errors.fat && bulk > 100) {
+    errors._form = `Protein, carbs and fat come to ${Math.round(bulk)} g per 100 g. Check the label.`;
+  }
+
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+
+/**
+ * Saves a food the user typed in themselves.
+ *
+ * These figures come off a packet the user is holding, which is a lookup —
+ * §0.2 forbids macros generated from model prose, not macros read off a label.
+ * Stored unverified so it is clear the numbers were not machine-checked.
+ */
+export async function createCustomFood(input, userId) {
+  const { valid, errors } = validateCustomFood(input);
+  if (!valid) return { success: false, errors };
+
+  const draft = {
+    source: 'custom',
+    name: String(input.name).trim(),
+    brand: String(input.brand || '').trim() || null,
+    per_100g: {
+      kcal: Number(input.kcal),
+      protein: Number(input.protein) || 0,
+      carbs: Number(input.carbs) || 0,
+      fat: Number(input.fat) || 0,
+      fibre: Number(input.fibre) || 0,
+      sugar: Number(input.sugar) || 0,
+      salt: Number(input.salt) || 0,
+    },
+    serving_grams: Number(input.servingGrams) > 0 ? Number(input.servingGrams) : null,
+    verified: false,
+  };
+
+  const result = await saveFood(draft, userId);
+  if (!result.success) return { success: false, errors: { _form: result.error } };
+  return { success: true, food: result.food };
+}
+
+/**
  * Whether this browser can scan a barcode from the camera.
- * Safari on iOS does not ship BarcodeDetector, so manual entry is not a
- * fallback for the unlucky — it is the main path for half the phones involved.
+ *
+ * This used to test for BarcodeDetector, which Safari does not ship — so the
+ * scan button never rendered on an iPhone at all. The detector is now
+ * polyfilled (see barcode-scanner.js), so the question is no longer "does this
+ * browser have the API" but "is there a camera we are allowed to ask for".
  */
 export function canScanBarcode() {
-  return typeof window !== 'undefined' && 'BarcodeDetector' in window;
+  return isCameraAvailable();
 }
 
 export function validateEntry({ food, grams, meal }) {
@@ -339,6 +499,12 @@ export async function loadNutritionContext(userId, dateKey = localDateKey()) {
 let selectedFood = null;
 let currentDateKey = localDateKey();
 
+// Held at module scope so a re-render can release the camera. The diary
+// repaints on every food:refresh, which destroys the <video> element — but a
+// destroyed element does not stop its MediaStream, so without this the camera
+// light stays on after logging a scanned item.
+let activeScanner = null;
+
 export function activateFoodDiary(container) {
   if (!container) return;
 
@@ -358,6 +524,11 @@ export function activateFoodDiary(container) {
 
 export async function renderDiary(mount) {
   if (!mount) return;
+
+  // About to replace the markup this scanner's <video> lives in.
+  activeScanner?.stop();
+  activeScanner = null;
+
   const user = getCurrentUser();
   const partnerProfile = getPartner();
   if (!user) {
@@ -576,10 +747,13 @@ function renderAddForm() {
             placeholder="Or type a barcode" aria-label="Barcode" />
           <button type="button" class="btn btn-secondary" id="barcode-lookup">Look up</button>
           ${canScanBarcode()
-            ? `<button type="button" class="btn btn-secondary" id="barcode-scan">Scan</button>`
+            ? `<button type="button" class="btn btn-primary" id="barcode-scan">Scan</button>`
             : ''}
         </div>
-        <video id="barcode-video" class="barcode-video" playsinline muted hidden></video>
+        <div class="barcode-viewport" id="barcode-viewport">
+          <video id="barcode-video" class="barcode-video" playsinline muted hidden></video>
+          <div class="barcode-reticle" aria-hidden="true"></div>
+        </div>
         <span id="barcode-status" class="form-status" aria-live="polite"></span>
 
         <div id="food-results" class="food-results" aria-live="polite"></div>
@@ -604,8 +778,72 @@ function renderAddForm() {
             <span class="form-status num" id="food-status" aria-live="polite"></span>
           </div>
         </div>
+
+        ${renderCustomFoodForm()}
       </div>
     </div>
+  `;
+}
+
+/**
+ * Hand entry, for the food that is not in any database — a market vegetable, a
+ * recipe from a friend, anything from a bakery counter. Collapsed, because it
+ * is the last resort rather than the first move.
+ */
+function renderCustomFoodForm() {
+  return `
+    <details class="disclosure mt-4" id="custom-food-disclosure">
+      <summary><span>Add a food by hand</span>${chevronSvg()}</summary>
+      <div class="disclosure-body">
+        <p class="field-hint">
+          Figures per 100 g, straight off the packet. Anything you add here is
+          shared, so the next time either of you searches for it, it is there.
+        </p>
+
+        <div class="input-group mt-4">
+          <label class="input-label" for="custom-name">Name</label>
+          <input type="text" id="custom-name" class="input" placeholder="Sourdough loaf" maxlength="200" />
+        </div>
+
+        <div class="input-group mt-4">
+          <label class="input-label" for="custom-brand">Brand (optional)</label>
+          <input type="text" id="custom-brand" class="input" placeholder="Local bakery" />
+        </div>
+
+        <div class="field-row mt-4">
+          <div class="input-group">
+            <label class="input-label" for="custom-kcal">kcal / 100 g</label>
+            <input type="number" id="custom-kcal" class="input num" min="0" max="900" step="1" inputmode="numeric" />
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="custom-protein">Protein (g)</label>
+            <input type="number" id="custom-protein" class="input num" min="0" max="100" step="0.1" inputmode="decimal" />
+          </div>
+        </div>
+
+        <div class="field-row mt-4">
+          <div class="input-group">
+            <label class="input-label" for="custom-carbs">Carbs (g)</label>
+            <input type="number" id="custom-carbs" class="input num" min="0" max="100" step="0.1" inputmode="decimal" />
+          </div>
+          <div class="input-group">
+            <label class="input-label" for="custom-fat">Fat (g)</label>
+            <input type="number" id="custom-fat" class="input num" min="0" max="100" step="0.1" inputmode="decimal" />
+          </div>
+        </div>
+
+        <div class="input-group mt-4">
+          <label class="input-label" for="custom-serving">Typical serving (g, optional)</label>
+          <input type="number" id="custom-serving" class="input num" min="1" max="5000" step="1" inputmode="numeric" />
+        </div>
+
+        <span id="custom-error" class="input-error-msg" aria-live="polite"></span>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="custom-save">Save food</button>
+          <span class="form-status" id="custom-status" aria-live="polite"></span>
+        </div>
+      </div>
+    </details>
   `;
 }
 
@@ -621,41 +859,84 @@ function wireAddForm(mount, userId, context) {
   const preview = mount.querySelector('#food-preview');
   if (!search) return;
 
+  // The rendered results, held here rather than serialised into a DOM
+  // attribute and parsed back out on click.
+  let currentResults = [];
+  // Monotonic, so a slow request cannot overwrite the results of a faster one
+  // issued after it. Open Food Facts takes about a second, local Postgres takes
+  // tens of milliseconds, so deleting a character used to be able to repaint
+  // the list with the results of the longer query you had already moved past.
+  let searchToken = 0;
   let timer = null;
+
+  const choose = (food) => {
+    selectedFood = food;
+    chosen.hidden = false;
+    grams.value = food.serving_grams || 100;
+    results.innerHTML = '';
+    search.value = food.name;
+    updatePreview();
+    grams.focus();
+  };
+
+  const runSearch = async () => {
+    const token = ++searchToken;
+    const term = search.value.trim();
+
+    if (term.length < 2) { results.innerHTML = ''; return; }
+
+    results.innerHTML = `<p class="meal-empty">Searching…</p>`;
+    const result = await searchFoods(term, context.history);
+    if (token !== searchToken) return; // A newer keystroke owns the list now.
+
+    if (!result.success) {
+      results.innerHTML = `<p class="meal-empty">${escapeHtml(result.error || 'Search failed.')}</p>`;
+      return;
+    }
+
+    currentResults = result.foods;
+
+    if (currentResults.length === 0) {
+      results.innerHTML = `
+        <p class="meal-empty">
+          Nothing found for “${escapeHtml(term)}”.
+          <button type="button" class="link-btn" id="open-custom-food">Add it by hand</button>.
+        </p>
+      `;
+      results.querySelector('#open-custom-food')?.addEventListener('click', () => {
+        const disclosure = mount.querySelector('#custom-food-disclosure');
+        if (!disclosure) return;
+        disclosure.open = true;
+        const name = mount.querySelector('#custom-name');
+        if (name) { name.value = term; name.focus(); }
+        disclosure.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+      });
+      return;
+    }
+
+    results.innerHTML = currentResults.map((food, index) => `
+      <button type="button" class="food-result" data-index="${index}">
+        <span class="food-result-name">${escapeHtml(food.name)}</span>
+        <span class="food-result-detail">
+          ${food.brand ? escapeHtml(food.brand) + ' · ' : ''}
+          <span class="num">${Math.round(Number(food.per_100g?.kcal) || 0)}</span> kcal/100 g
+          ${food.verified ? '· verified' : ''}
+          ${food.id ? '' : '· not saved yet'}
+        </span>
+      </button>
+    `).join('');
+
+    results.querySelectorAll('[data-index]').forEach((button) => {
+      button.addEventListener('click', () => {
+        choose(currentResults[Number(button.dataset.index)]);
+      });
+    });
+  };
+
+  // Debounced so typing does not fire a query per keystroke.
   search.addEventListener('input', () => {
     clearTimeout(timer);
-    // Debounced so typing does not fire a query per keystroke.
-    timer = setTimeout(async () => {
-      const result = await searchFoods(search.value, context.history);
-      if (!result.success) { results.innerHTML = ''; return; }
-      if (result.foods.length === 0) {
-        results.innerHTML = search.value.trim().length >= 2
-          ? `<p class="meal-empty">Nothing found. Add it as a custom food.</p>` : '';
-        return;
-      }
-      results.innerHTML = result.foods.map(food => `
-        <button type="button" class="food-result" data-food='${escapeHtml(JSON.stringify(food))}'>
-          <span class="food-result-name">${escapeHtml(food.name)}</span>
-          <span class="food-result-detail">
-            ${food.brand ? escapeHtml(food.brand) + ' · ' : ''}
-            <span class="num">${Math.round(Number(food.per_100g?.kcal) || 0)}</span> kcal/100 g
-            ${food.verified ? '· verified' : ''}
-          </span>
-        </button>
-      `).join('');
-
-      results.querySelectorAll('[data-food]').forEach((button) => {
-        button.addEventListener('click', () => {
-          selectedFood = JSON.parse(button.dataset.food);
-          chosen.hidden = false;
-          grams.value = selectedFood.serving_grams || 100;
-          results.innerHTML = '';
-          search.value = selectedFood.name;
-          updatePreview();
-          grams.focus();
-        });
-      });
-    }, 250);
+    timer = setTimeout(runSearch, 250);
   });
 
   const updatePreview = () => {
@@ -680,34 +961,120 @@ function wireAddForm(mount, userId, context) {
     updatePreview();
   });
 
-  mount.querySelector('#food-add').addEventListener('click', async () => {
+  const addButton = mount.querySelector('#food-add');
+  addButton.addEventListener('click', async () => {
     const error = mount.querySelector('#food-error');
     const status = mount.querySelector('#food-status');
     error.textContent = '';
 
-    const payload = {
-      food: selectedFood,
-      grams: grams.value,
-      meal: mount.querySelector('#food-meal').value,
-      dateKey: currentDateKey,
+    if (!selectedFood) {
+      error.textContent = 'Pick a food first.';
+      return;
+    }
+
+    addButton.disabled = true;
+    try {
+      // A result straight from Open Food Facts is not a row in our table yet,
+      // so it has no id for the entry's foreign key. Save it on the way past —
+      // which also means the next search for it resolves locally and offline.
+      if (!selectedFood.id) {
+        status.textContent = 'Saving food…';
+        const { id, score, logCount, lastLoggedAt, ...draft } = selectedFood;
+        const saved = await saveFood(draft, userId);
+        if (!saved.success) {
+          status.textContent = '';
+          error.textContent = saved.error;
+          return;
+        }
+        selectedFood = saved.food;
+      }
+
+      const payload = {
+        food: selectedFood,
+        grams: grams.value,
+        meal: mount.querySelector('#food-meal').value,
+        dateKey: currentDateKey,
+      };
+
+      const { valid, errors } = validateEntry(payload);
+      if (!valid) {
+        status.textContent = '';
+        error.textContent = Object.values(errors)[0];
+        return;
+      }
+
+      status.textContent = 'Saving…';
+      const result = await logEntry(payload, userId);
+      if (!result.success) {
+        status.textContent = '';
+        error.textContent = result.errors?._form || Object.values(result.errors || {})[0];
+        return;
+      }
+
+      selectedFood = null;
+      window.dispatchEvent(new CustomEvent('food:refresh'));
+    } finally {
+      addButton.disabled = false;
+    }
+  });
+
+  wireCustomFoodForm(mount, userId, (food) => {
+    choose(food);
+    const disclosure = mount.querySelector('#custom-food-disclosure');
+    if (disclosure) disclosure.open = false;
+  });
+}
+
+/**
+ * Hand entry. On save the food is selected straight away, because the reason
+ * anyone opens this form is to log the thing they just typed in.
+ */
+function wireCustomFoodForm(mount, userId, onCreated) {
+  const saveButton = mount.querySelector('#custom-save');
+  if (!saveButton) return;
+
+  const field = (id) => mount.querySelector(`#custom-${id}`);
+
+  saveButton.addEventListener('click', async () => {
+    const error = mount.querySelector('#custom-error');
+    const status = mount.querySelector('#custom-status');
+    error.textContent = '';
+    status.textContent = '';
+
+    const input = {
+      name: field('name').value,
+      brand: field('brand').value,
+      kcal: field('kcal').value,
+      protein: field('protein').value,
+      carbs: field('carbs').value,
+      fat: field('fat').value,
+      servingGrams: field('serving').value,
     };
 
-    const { valid, errors } = validateEntry(payload);
+    const { valid, errors } = validateCustomFood(input);
     if (!valid) {
-      error.textContent = Object.values(errors)[0];
+      error.textContent = errors._form || Object.values(errors)[0];
       return;
     }
 
+    saveButton.disabled = true;
     status.textContent = 'Saving…';
-    const result = await logEntry(payload, userId);
-    if (!result.success) {
-      status.textContent = '';
-      error.textContent = result.errors?._form || Object.values(result.errors || {})[0];
-      return;
-    }
+    try {
+      const result = await createCustomFood(input, userId);
+      if (!result.success) {
+        status.textContent = '';
+        error.textContent = result.errors?._form || Object.values(result.errors || {})[0];
+        return;
+      }
 
-    selectedFood = null;
-    window.dispatchEvent(new CustomEvent('food:refresh'));
+      status.textContent = 'Saved';
+      for (const id of ['name', 'brand', 'kcal', 'protein', 'carbs', 'fat', 'serving']) {
+        field(id).value = '';
+      }
+      onCreated(result.food);
+    } finally {
+      saveButton.disabled = false;
+    }
   });
 }
 
@@ -720,16 +1087,13 @@ function wireBarcode(mount, userId, onFound) {
   const input = mount.querySelector('#barcode-input');
   const status = mount.querySelector('#barcode-status');
   const video = mount.querySelector('#barcode-video');
+  const scanButton = mount.querySelector('#barcode-scan');
   if (!input) return;
 
-  let stream = null;
-  let scanning = false;
-
   const stopCamera = () => {
-    scanning = false;
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    stream = null;
-    video.hidden = true;
+    activeScanner?.stop();
+    activeScanner = null;
+    if (scanButton) scanButton.textContent = 'Scan';
   };
 
   const resolve = async (code) => {
@@ -771,45 +1135,35 @@ function wireBarcode(mount, userId, onFound) {
     }
   });
 
-  mount.querySelector('#barcode-scan')?.addEventListener('click', async () => {
-    if (scanning) { stopCamera(); status.textContent = ''; return; }
-
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
-    } catch {
-      status.textContent = 'No camera access. Type the number instead.';
+  scanButton?.addEventListener('click', async () => {
+    if (activeScanner?.isRunning()) {
+      stopCamera();
+      status.textContent = '';
       return;
     }
 
-    video.srcObject = stream;
-    video.hidden = false;
-    await video.play().catch(() => undefined);
+    scanButton.disabled = true;
+    // The polyfill fetches a WebAssembly decoder on first use, which on a
+    // phone connection is a visible pause. Saying so beats a dead button.
+    status.textContent = 'Starting camera…';
 
-    const detector = new window.BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
+    activeScanner = createBarcodeScanner({
+      video,
+      onStatus: (message) => { status.textContent = message; },
+      onResult: (code) => {
+        input.value = code;
+        if (scanButton) scanButton.textContent = 'Scan';
+        resolve(code);
+      },
     });
-    scanning = true;
-    status.textContent = 'Point at the barcode…';
 
-    const tick = async () => {
-      if (!scanning) return;
-      try {
-        const codes = await detector.detect(video);
-        if (codes.length) {
-          const value = codes[0].rawValue;
-          input.value = value;
-          stopCamera();
-          resolve(value);
-          return;
-        }
-      } catch {
-        // A frame that fails to decode is normal; keep going.
-      }
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
+    const started = await activeScanner.start();
+    scanButton.disabled = false;
+    if (started) {
+      scanButton.textContent = 'Stop';
+    } else {
+      activeScanner = null;
+    }
   });
 }
 

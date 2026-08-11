@@ -60,6 +60,7 @@ js/
   steps-module.js       steps; a section inside Fitness, not its own tab
   device-sync.js        iOS Shortcuts token issuing (§5.1)
   nutrition-engine.js   §2.5, §3.2–3.6 smoothing, TDEE, targets (pure)
+  barcode-scanner.js    camera scanning; polyfills BarcodeDetector for Safari
   food-diary.js         diary data + view, barcode lookup
   nutrition-settings.js profile inputs feeding the target maths
   portion-split.js      §2.5 couples portion UI
@@ -169,8 +170,19 @@ Deployed but barely exercised: `generate-recipe`. Watch the coverage percentage
 the `normalise()` function in the Edge Function.
 
 Not built, deliberately: Android health sync (needs a native wrapper — no web
-API exists), background sync while the app is closed, camera barcode scanning
-on iOS Safari (no `BarcodeDetector`; manual entry is the path there).
+API exists), background sync while the app is closed.
+
+Camera barcode scanning used to be listed here as impossible on iOS Safari for
+want of `BarcodeDetector`. It is built now: `js/barcode-scanner.js` polyfills
+the detector in WebAssembly where the browser has none, so the scan button
+appears on every phone. Two consequences worth knowing:
+
+- The polyfill is fetched from a CDN on first scan, so the first scan of a
+  session needs a connection even though the rest of the diary works offline.
+  The service worker does not cache it.
+- `getUserMedia` is called *before* the polyfill is awaited. Safari only grants
+  camera access inside a user gesture, and awaiting an import first spends the
+  gesture, after which the permission prompt never appears.
 
 ---
 
