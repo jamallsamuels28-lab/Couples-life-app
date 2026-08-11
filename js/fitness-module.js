@@ -9,6 +9,7 @@
 import { supabase, withAuthGuard } from './supabase-client.js';
 import { getCurrentUser, getPartner } from './app-shell.js';
 import { activate as activateStepsSection } from './steps-module.js';
+import { renderExerciseLibrary } from './exercise-library.js';
 import { escapeHtml, chevronSvg, formatNumber, localDateKey } from './ui-helpers.js';
 import {
   MET,
@@ -250,6 +251,10 @@ export function activateFitnessView(container) {
       <summary><span>Log a set</span>${chevronSvg()}</summary>
       <div class="disclosure-body" id="set-form-mount"></div>
     </details>
+    <details class="disclosure" id="exercise-library-disclosure">
+      <summary><span>Exercise library</span>${chevronSvg()}</summary>
+      <div class="disclosure-body" id="exercise-library-mount"></div>
+    </details>
     <details class="disclosure" id="restriction-disclosure">
       <summary><span>Restricted exercises</span>${chevronSvg()}</summary>
       <div class="disclosure-body" id="restriction-mount"></div>
@@ -263,6 +268,24 @@ export function activateFitnessView(container) {
   `;
 
   renderFitnessDashboard(container.querySelector('#fitness-dashboard'));
+
+  // Built on first open rather than on view load: the library is 700-odd rows
+  // and most visits to this tab are to log a set, not to browse.
+  const libraryDisclosure = container.querySelector('#exercise-library-disclosure');
+  libraryDisclosure?.addEventListener('toggle', async () => {
+    const mount = container.querySelector('#exercise-library-mount');
+    if (!libraryDisclosure.open || !mount || mount.dataset.loaded) return;
+    mount.dataset.loaded = 'true';
+    mount.innerHTML = `<p class="view-placeholder-text">Loading exercises…</p>`;
+
+    const result = await fetchExercises();
+    if (!result.success) {
+      mount.dataset.loaded = '';
+      mount.innerHTML = `<div class="empty-state">${result.error}</div>`;
+      return;
+    }
+    renderExerciseLibrary(mount, result.exercises);
+  });
 
   // Steps is part of training, not a separate concern — walking volume feeds
   // the same energy expenditure figure as a session does.

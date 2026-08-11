@@ -1006,6 +1006,24 @@
   border-color: var(--line-strong);
 }
 
+/* An inline action that reads as prose rather than a control — used where a
+   sentence needs a verb, e.g. "Nothing found. Add it by hand." */
+.link-btn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--ink-2);
+}
+
 .food-results {
   display: flex;
   flex-direction: column;
@@ -1057,7 +1075,32 @@
   min-width: 0;
 }
 
+/* On a narrow phone the field and its button fight for the same 300px and the
+   field wins down to about eight characters. Stack instead. */
+@media (max-width: 420px) {
+  .barcode-row {
+    flex-wrap: wrap;
+  }
+
+  .barcode-row .input {
+    flex-basis: 100%;
+  }
+
+  .barcode-row .btn {
+    flex: 1;
+  }
+}
+
+.barcode-viewport {
+  position: relative;
+  /* Clips the reticle's dimming shadow, which is spread wide enough to cover
+     any viewport and would otherwise darken the whole page. */
+  overflow: hidden;
+  border-radius: var(--r-md);
+}
+
 .barcode-video {
+  display: block;
   width: 100%;
   max-height: 220px;
   object-fit: cover;
@@ -1065,6 +1108,28 @@
   border-radius: var(--r-md);
   border: var(--hair) solid var(--line);
   background: var(--surface-2);
+}
+
+/* A framing box, so it is obvious where to hold the packet. Drawn only while
+   the camera is live — the sibling combinator keys off the same `hidden`
+   attribute the scanner toggles, so there is no second piece of state to
+   forget to clear. */
+.barcode-reticle {
+  display: none;
+}
+
+.barcode-video:not([hidden]) ~ .barcode-reticle {
+  display: block;
+  position: absolute;
+  top: calc(50% + var(--s2));
+  left: 50%;
+  width: 70%;
+  height: 42%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-sm);
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.35);
+  pointer-events: none;
 }
 
 /* --- Target preview --- */
@@ -1638,8 +1703,257 @@
   white-space: nowrap;
 }
 
+.event-actions {
+  display: flex;
+  gap: var(--s1);
+  flex-shrink: 0;
+}
+
+/* A quiet text control. Ghost-weight until hovered, because a row of loud
+   Delete buttons makes the list read as a form rather than a schedule. */
+.icon-btn {
+  font-family: inherit;
+  font-size: var(--t-xs);
+  padding: var(--s1) var(--s2);
+  background: transparent;
+  color: var(--ink-2);
+  border: var(--hair) solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.icon-btn:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/* On a phone the row runs out of width long before the actions fit, so they
+   drop to their own line rather than crushing the title to an ellipsis. */
+@media (max-width: 480px) {
+  .event-item {
+    flex-wrap: wrap;
+  }
+
+  .event-title {
+    flex-basis: 100%;
+    order: -1;
+    white-space: normal;
+  }
+
+  .event-actions {
+    margin-left: auto;
+  }
+}
+
+/* ============================================================
+   RECURRENCE SCOPE DIALOG
+   "Just this one" or "the whole series", asked before an edit or delete
+   touches a repeating event.
+   ============================================================ */
+.scope-dialog {
+  padding: 0;
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: min(420px, calc(100vw - var(--s5)));
+}
+
+.scope-dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+
+.scope-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4);
+}
+
+.scope-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+
+.scope-dialog-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .disclosure > summary .disclosure-icon {
     transition: none;
   }
+}
+
+/* ============================================================
+   EXERCISE LIBRARY
+   Browse by body part, narrow by equipment. Cards stay collapsed until
+   opened so 700-odd images are not fetched to render a list.
+   ============================================================ */
+.exercise-filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.exercise-count {
+  margin-top: var(--s3);
+}
+
+.exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+.exercise-card {
+  background: var(--surface-2);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.exercise-card > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.exercise-card > summary::-webkit-details-marker {
+  display: none;
+}
+
+.exercise-card > summary:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.exercise-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.exercise-name {
+  font-size: var(--t-sm);
+  color: var(--ink);
+}
+
+.exercise-meta {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.exercise-body {
+  padding: 0 var(--s3) var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.exercise-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--t-xs);
+}
+
+.exercise-facts > div {
+  display: flex;
+  gap: var(--s2);
+}
+
+.exercise-facts dt {
+  color: var(--ink-3);
+  min-width: 84px;
+}
+
+.exercise-facts dd {
+  color: var(--ink-2);
+}
+
+.exercise-image {
+  width: 100%;
+  max-width: 320px;
+  border-radius: var(--r-sm);
+  border: var(--hair) solid var(--line);
+  background: var(--surface);
+}
+
+.exercise-description {
+  font-size: var(--t-sm);
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.exercise-actions {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+
+/* Required by CC-BY-SA wherever an imported description or image is shown. */
+.exercise-attribution {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+.exercise-attribution a {
+  color: inherit;
+}
+
+/* ---- Form cues ----
+   Written for this app, not imported. Boxed and labelled so it reads as
+   separate from the CC-BY-SA description below it. */
+.exercise-cues {
+  padding: var(--s3);
+  background: var(--surface);
+  border: var(--hair) solid var(--line);
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.cue-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cue-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.cue-heading {
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.cue-list {
+  margin: 0;
+  padding-left: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--t-sm);
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+/* Faults get the ink weight — they are the part worth reading twice. */
+.cue-group--faults .cue-list {
+  color: var(--ink);
 }
