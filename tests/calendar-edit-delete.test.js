@@ -284,3 +284,46 @@ describe('form edit mode', () => {
     expect(container.querySelector('#event-form').elements.rrule.disabled).toBe(false);
   });
 });
+
+describe('tapping an event in a calendar view', () => {
+  // calendar-views.js dispatched `calendar:edit-event` from the moment the
+  // views were written, and nothing listened. Tapping an event in month, week
+  // or day view did nothing at all — no error, no form, no feedback. Nothing
+  // failed, because a CustomEvent with no listener is silently discarded.
+  it('is dispatched with the event id when an event is tapped', async () => {
+    const { renderCalendarViews, setViewState } = await import('../js/calendar-views.js');
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const anchor = new Date(2026, 7, 17, 12, 0, 0);
+    setViewState({ mode: 'day', anchor });
+
+    const start = new Date(2026, 7, 17, 10, 0, 0);
+    const end = new Date(2026, 7, 17, 11, 0, 0);
+
+    renderCalendarViews(container, {
+      instances: [{
+        id: 'evt-1', user_id: 'user-a', title: 'Dentist',
+        start_time: start.toISOString(), end_time: end.toISOString(), is_busy: true,
+      }],
+      scheduleA: { patterns: [], sleepRules: [] },
+      scheduleB: { patterns: [], sleepRules: [] },
+      user: { id: 'user-a' },
+      partner: { id: 'user-b' },
+      labelA: 'Jamall',
+      labelB: 'Rebecca',
+    });
+
+    const eventEl = container.querySelector('.cal-event');
+    expect(eventEl, 'no event rendered to tap').not.toBeNull();
+
+    const seen = [];
+    const listener = (e) => seen.push(e.detail?.id);
+    window.addEventListener('calendar:edit-event', listener);
+    eventEl.click();
+    window.removeEventListener('calendar:edit-event', listener);
+
+    expect(seen).toEqual(['evt-1']);
+  });
+});

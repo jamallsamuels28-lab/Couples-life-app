@@ -913,6 +913,36 @@ export function initCalendarModule() {
     }
   });
 
+  // Tapping an event in the month, week or day view opens it for editing.
+  //
+  // calendar-views.js has dispatched this since the views were written and
+  // nothing ever listened, so tapping an event did nothing at all — there was
+  // no edit flow to connect it to until now.
+  window.addEventListener('calendar:edit-event', async (event) => {
+    const id = event.detail?.id;
+    if (!id) return;
+
+    // Fetched rather than taken from the view: the views render expanded
+    // instances, and editing needs the stored row the instance came from.
+    const { data, error } = await supabase
+      .from('events').select('*').eq('id', id).single();
+
+    if (error || !data) {
+      showToast('Could not open that event', 'error');
+      return;
+    }
+
+    const user = getCurrentUser();
+    if (user && data.user_id !== user.id) {
+      // RLS would refuse the write anyway; saying so beats a form that
+      // silently fails on save.
+      showToast('That is your partner\'s event', 'error');
+      return;
+    }
+
+    beginEditingEvent(data, 'series', document);
+  });
+
   // Re-render the dashboard when a partner change arrives over realtime
   window.addEventListener('calendar:refresh', () => {
     const container = document.getElementById('calendar-view');
