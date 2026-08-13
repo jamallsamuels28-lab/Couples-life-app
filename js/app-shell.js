@@ -12,9 +12,6 @@ import { wireModulesToRealtime, unwireModulesFromRealtime } from './realtime-wir
 // Without these imports the modules never load and each view stays on its
 // placeholder text.
 import { initCalendarModule } from './calendar-module.js';
-import { initFitnessModule } from './fitness-module.js';
-import './steps-module.js';
-import './food-module.js';
 
 // --- State ---
 let currentUser = null;
@@ -43,12 +40,14 @@ export async function ensureAuth() {
 }
 
 /** The three tabs. Steps lives inside Fitness rather than having its own. */
-export const VALID_VIEWS = ['calendar', 'fitness', 'food'];
+export const VALID_VIEWS = ['calendar'];
 
 /** Navigate to a module view without full page reload */
 export function navigate(viewId) {
   // Old bookmarks and home-screen shortcuts pointing at #steps land on Fitness.
-  const target = viewId === 'steps' ? 'fitness' : viewId;
+  // A bookmark or home-screen shortcut pointing at a removed tab lands on the
+  // calendar rather than a blank screen.
+  const target = VALID_VIEWS.includes(viewId) ? viewId : 'calendar';
   if (!VALID_VIEWS.includes(target)) return;
 
   currentView = target;
@@ -87,11 +86,10 @@ export async function init() {
   // Register the calendar module's viewchange listener. Must happen before the
   // first renderActiveView() call, which dispatches that event.
   initCalendarModule();
-  initFitnessModule();
 
   // Determine initial view from hash or default to calendar
   const hash = window.location.hash.replace('#', '');
-  const requested = hash === 'steps' ? 'fitness' : hash;
+  const requested = hash;
   currentView = VALID_VIEWS.includes(requested) ? requested : 'calendar';
   window.location.hash = currentView;
 
@@ -294,22 +292,6 @@ function renderShell() {
         </svg>
         <span class="nav-label">Calendar</span>
       </button>
-      <button class="nav-item" data-view="fitness" aria-label="Fitness">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <line x1="3" y1="10" x2="17" y2="10"/>
-          <rect x="4" y="7" width="2.5" height="6" rx="1"/>
-          <rect x="13.5" y="7" width="2.5" height="6" rx="1"/>
-        </svg>
-        <span class="nav-label">Fitness</span>
-      </button>
-      <button class="nav-item" data-view="food" aria-label="Food">
-        <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
-          <ellipse cx="10" cy="14" rx="7" ry="4"/>
-          <path d="M3 14 C3 10 7 7 10 7 C13 7 17 10 17 14"/>
-          <line x1="10" y1="4" x2="10" y2="7"/>
-        </svg>
-        <span class="nav-label">Food</span>
-      </button>
     </nav>
   `;
 
@@ -329,7 +311,7 @@ function onHashChange() {
   const hash = window.location.hash.replace('#', '');
   // 'steps' is kept as an alias so an old bookmark or home-screen shortcut
   // still lands somewhere sensible rather than on a blank view.
-  const target = hash === 'steps' ? 'fitness' : hash;
+  const target = hash;
   if (['calendar', 'fitness', 'food'].includes(target) && target !== currentView) {
     currentView = target;
     renderActiveView();
@@ -348,8 +330,8 @@ function renderActiveView() {
   // survives when a module replaces the container's contents. The mount
   // container uses .view-content (a full-width stack), not .view-placeholder —
   // that class centres its children and is only for the loading message.
-  const viewTitles = { calendar: 'Calendar', fitness: 'Fitness', food: 'Food' };
-  const title = viewTitles[currentView];
+  const viewTitles = { calendar: 'Calendar' };
+  const title = viewTitles[currentView] || 'Calendar';
 
   container.innerHTML = `
     <header class="view-header">

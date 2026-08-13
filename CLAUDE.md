@@ -1,7 +1,7 @@
-# Couples Life App
+# Couples Calendar
 
-A PWA for two people (Jamall and Rebecca) covering a shared calendar, training,
-and food. Static frontend on GitHub Pages, Supabase for database, auth,
+A PWA for two people (Jamall and Rebecca): a shared calendar with sleep- and
+shift-aware mutual free time. Static frontend on GitHub Pages, Supabase for database, auth,
 realtime and Edge Functions. No build step — plain ES modules, loaded directly.
 
 Live: <https://jamallsamuels28-lab.github.io/Couples-life-app/>
@@ -213,3 +213,35 @@ appears on every phone. Two consequences worth knowing:
 Say what is actually true. If something is untested, unverified, or a guess,
 name it as such rather than presenting it as done. When a spec and reality
 disagree, surface the conflict instead of quietly picking one.
+
+---
+
+## Removed: fitness and food
+
+Fitness, steps, the exercise library, the food diary, nutrition targets, the
+recipe book and the AI recipe generator were all removed. They are moving to a
+separate coaching app. This one is a calendar.
+
+**The database tables were deliberately left in place.** `sets`, `steps_log`,
+`weigh_ins`, `food_entries`, `foods`, `recipes`, `exercises` and the rest still
+hold real logged history, and that history belongs to whoever migrates it — not
+to a tidy-up. Their RLS policies are untouched, so nothing has changed about
+who can read them. Do not write a drop migration without being asked.
+
+Consequences worth knowing:
+
+- `supabase/setup-complete.sql` and the migrations still create every one of
+  those tables. That is correct: the file must stay able to rebuild the
+  database as it actually is.
+- `realtime-wiring.js` still bridges `meals`, `recipes`, `pantry_items` and
+  `steps_log` events. Nothing listens for them any more. Harmless, but dead —
+  worth removing next time that file is touched.
+- `tests/integration-cross-module.test.js` was deleted rather than trimmed. It
+  imported the removed modules, and most of it covered them. The calendar and
+  free-window paths it also touched are still covered by
+  `free-windows.test.js`, `property-free-windows.test.js` and
+  `calendar-module.test.js`, but the cross-module integration angle is gone and
+  would be worth rebuilding.
+- The bottom nav was removed entirely. With one view there is nothing to switch
+  between. `VALID_VIEWS` is still the single source of truth for routing, and
+  any unknown hash now lands on the calendar rather than a blank screen.

@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v15';
+const CACHE_NAME = 'couples-life-v16';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -11,38 +11,21 @@ const APP_SHELL_ASSETS = [
   './css/colour-picker.css',
   './css/app-shell.css',
   './css/realtime.css',
-  './css/dietary-preferences.css',
   './css/overlap-ribbon.css',
   './css/calendar-views.css',
   './css/modules.css',
   './js/app-shell.js',
-  './js/barcode-scanner.js',
   './js/calendar-module.js',
   './js/calendar-views.js',
   './js/colour-picker.js',
-  './js/device-sync.js',
-  './js/exercise-cues.js',
-  './js/exercise-library.js',
-  './js/dietary-preferences.js',
-  './js/fitness-engine.js',
-  './js/fitness-module.js',
-  './js/food-diary.js',
-  './js/food-module.js',
-  './js/nutrition-engine.js',
   './js/free-windows.js',
-  './js/nutrition-settings.js',
-  './js/portion-split.js',
   './js/google-sync.js',
   './js/overlap-ribbon.js',
-  './js/pantry-module.js',
   './js/recurrence-picker.js',
   './js/realtime-manager.js',
   './js/realtime-wiring.js',
-  './js/recipe-book.js',
-  './js/recipe-generator.js',
   './js/schedule-editor.js',
   './js/schedule-patterns.js',
-  './js/steps-module.js',
   './js/supabase-client.js',
   './js/ui-helpers.js',
   './manifest.json',
