@@ -27,6 +27,24 @@ const SCOPES = [
 
 const STATE_KEY = 'google-oauth-state';
 
+// Why the last connection attempt failed. The handshake happens during page
+// boot, before the sync panel exists, so a failure had nowhere to go and was
+// written to console.warn — invisible on a phone. Stashed here instead and
+// shown in the panel, which is where someone is looking when they wonder why
+// it still says "Not connected".
+const LAST_ERROR_KEY = 'google-oauth-last-error';
+
+export function recordConnectError(message) {
+  try {
+    if (message) sessionStorage.setItem(LAST_ERROR_KEY, String(message));
+    else sessionStorage.removeItem(LAST_ERROR_KEY);
+  } catch { /* private mode */ }
+}
+
+export function lastConnectError() {
+  try { return sessionStorage.getItem(LAST_ERROR_KEY); } catch { return null; }
+}
+
 // Resolved on call rather than at import time. Reading SUPABASE_URL during
 // module evaluation makes this file impossible to import in any test that
 // mocks supabase-client without re-exporting every constant.
@@ -203,21 +221,24 @@ export async function completeGoogleAuth() {
   const clean = window.location.pathname;
   window.history.replaceState({}, '', clean);
 
-  if (error) return { handled: true, success: false, error: `Google returned: ${error}` };
+  if (error) {
+    const message = `Google returned: ${error}`;
+    recordConnectError(message);
+    return { handled: true, success: false, error: message };
+  }
 
   let expectedState = null;
   try { expectedState = sessionStorage.getItem(STATE_KEY); } catch { /* private mode */ }
   try { sessionStorage.removeItem(STATE_KEY); } catch { /* private mode */ }
 
   if (!expectedState || expectedState !== returnedState) {
-    return {
-      handled: true,
-      success: false,
-      error: 'The sign-in response did not match this browser session. Try connecting again.',
-    };
+    const error = 'The sign-in response did not match this browser session. Try connecting again.';
+    recordConnectError(error);
+    return { handled: true, success: false, error };
   }
 
   const result = await callFunction('connect', { code, redirectUri: clean ? `${window.location.origin}${clean}` : redirectUri() });
+  recordConnectError(result.success ? null : (result.error || 'The connection could not be completed.'));
   return { handled: true, ...result };
 }
 
@@ -267,6 +288,10 @@ export async function renderGoogleSyncPanel(container) {
         </div>
         <span class="sync-state ${connected ? 'is-on' : ''}">${connected ? 'Connected' : 'Off'}</span>
       </div>
+
+      ${!connected && lastConnectError() ? `
+        <p class="input-error-msg">${escapeHtml(lastConnectError())}</p>
+      ` : ''}
 
       ${connected ? `
         <p class="field-hint">
