@@ -14,7 +14,10 @@ import { escapeHtml } from './ui-helpers.js';
 // The OAuth client ID is public by design — it identifies the app, it does not
 // authorise anything on its own. Replace after creating the Google Cloud
 // credential (see docs/google-calendar-setup.md).
-export const GOOGLE_CLIENT_ID = '';
+// Public by design: this identifies the app and authorises nothing on its own.
+// The matching client SECRET must never appear in this repo — it lives only in
+// Supabase Edge Function secrets, where the token exchange happens server-side.
+export const GOOGLE_CLIENT_ID = '787807232870-l0sgqjukfi7abb53bstvremp1gesf1jh.apps.googleusercontent.com';
 
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const SCOPES = [
