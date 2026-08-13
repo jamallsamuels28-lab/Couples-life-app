@@ -12,9 +12,6 @@
   --h-clay: 35;
   --h-plum: 330;
 
-  /* Default identity hues (overridden by user selection) */
-  --id-a-h: 250;
-  --id-b-h: 35;
 }
 
 /* ---------- Typography ---------- */
@@ -113,10 +110,19 @@
   --wash: 0.14;
 }
 
-/* ---------- Computed identity colours ---------- */
+/* ---------- Person distinction ----------
+   These were two OKLCH identity hues, one per person, with a picker to choose
+   them. That is gone: a colour is something the reader has to decode, and
+   nothing on screen said which hue was whom. Events and markers name the
+   person instead — see the initials in month view.
+
+   The tokens survive as neutral tones because two tracks in the overlap ribbon
+   still have to be told apart at a glance, and there they are labelled. Kept as
+   variables rather than inlined so the whole scheme stays changeable in one
+   place, and so the ~50 existing usages did not each need editing. */
 :root {
-  --id-a: oklch(var(--id-l) var(--id-c) var(--id-a-h));
-  --id-b: oklch(var(--id-l) var(--id-c) var(--id-b-h));
+  --id-a: var(--ink);
+  --id-b: var(--ink-3);
   --id-shared: var(--ink-2);
 }
 

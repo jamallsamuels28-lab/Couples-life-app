@@ -14,7 +14,6 @@ import { renderCalendarViews, visibleRange } from './calendar-views.js';
 import { renderGoogleSyncPanel, startAutoSync } from './google-sync.js';
 import { escapeHtml, displayName, chevronSvg } from './ui-helpers.js';
 import { renderRecurrencePicker, wireRecurrencePicker, describeRRule } from './recurrence-picker.js';
-import { renderColourPicker } from './colour-picker.js';
 
 // --- Validation ---
 
@@ -1013,23 +1012,11 @@ export function activateCalendarView(container) {
       </summary>
       <div class="disclosure-body" id="schedule-editor-mount"></div>
     </details>
-    <details class="disclosure" id="colour-picker-disclosure">
-      <summary>
-        <span>Identity colours</span>
-        ${chevronSvg()}
-      </summary>
-      <div class="disclosure-body">
-        <div id="colour-picker-a"></div>
-        <div id="colour-picker-b" class="mt-3"></div>
-      </div>
-    </details>
   `;
 
   renderEventForm(container.querySelector('#event-form-mount'));
   renderScheduleEditor(container.querySelector('#schedule-editor-mount'));
   renderGoogleSyncPanel(container.querySelector('#google-sync-mount'));
-  renderColourPicker('a', container.querySelector('#colour-picker-a'));
-  renderColourPicker('b', container.querySelector('#colour-picker-b'));
   renderCalendarDashboard(container.querySelector('#calendar-dashboard'));
   renderCalendarGrid(container.querySelector('#calendar-grid-mount'));
 }

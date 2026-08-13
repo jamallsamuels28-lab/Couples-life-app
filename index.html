@@ -34,7 +34,6 @@
   <!-- Design tokens and theme system -->
   <link rel="stylesheet" href="css/design-tokens.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/colour-picker.css">
   <link rel="stylesheet" href="css/app-shell.css">
   <link rel="stylesheet" href="css/realtime.css">
   <link rel="stylesheet" href="css/overlap-ribbon.css">
@@ -60,11 +59,6 @@
 
     // Apply saved theme on load
     setTheme(getTheme());
-  </script>
-  <script type="module">
-    import { initColours } from './js/colour-picker.js';
-    // Restore identity colours from localStorage on boot
-    initColours();
   </script>
   <script type="module">
     // If Google has redirected back with an authorisation code, finish the

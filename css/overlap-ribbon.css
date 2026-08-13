@@ -105,13 +105,15 @@
   min-width: 2px;
 }
 
+/* The two tracks are told apart by lightness, not hue, and each already
+   carries a name label beside it. The identity hues these referenced are gone. */
 .overlap-ribbon__block--a {
-  background: oklch(var(--id-l) var(--id-c) var(--id-a-h) / var(--wash));
+  background: color-mix(in oklab, var(--ink) 22%, transparent);
   border: var(--hair) solid var(--id-a);
 }
 
 .overlap-ribbon__block--b {
-  background: oklch(var(--id-l) var(--id-c) var(--id-b-h) / var(--wash));
+  background: color-mix(in oklab, var(--ink) 10%, transparent);
   border: var(--hair) solid var(--id-b);
 }
 

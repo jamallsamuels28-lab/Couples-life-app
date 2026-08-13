@@ -161,17 +161,7 @@ Known violation: `.input-error-msg` hardcodes `#e55`, outside the token system.
 
 ## Next up, in order
 
-0b. **Drop the identity colours.** Decided: colour-per-person is the wrong
-   concept here and is going. `--id-a` / `--id-b`, the two OKLCH hues, and
-   `js/colour-picker.js` all come out. Events and bands should say whose they
-   are in words — a name or a label — not a hue the reader has to decode. The
-   overlap ribbon is the one place a two-colour fill genuinely carries meaning;
-   decide explicitly whether it keeps a neutral two-tone treatment or also goes
-   to labels. Touches `css/calendar-views.css`, `css/overlap-ribbon.css`,
-   `css/components.css`, `css/modules.css`, `css/design-tokens.css` and
-   `tests/colour-picker.test.js`.
-
-0c. **UK bank holidays, all three nations, filterable.** Do NOT type the dates
+1. **UK bank holidays, all three nations, filterable.** Do NOT type the dates
    from memory: Easter-derived holidays move each year, and England & Wales,
    Scotland and Northern Ireland have different sets. gov.uk publishes an
    official feed at <https://www.gov.uk/bank-holidays.json> — no key, all three
