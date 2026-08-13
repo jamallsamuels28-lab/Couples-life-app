@@ -108,7 +108,7 @@ export function renderCalendarViews(container, data) {
   container.innerHTML = `
     ${renderHeader(data)}
     <div class="cal-surface" id="cal-surface">
-      ${state.mode === 'month' ? renderMonth(data, start) : ''}
+      ${state.mode === 'month' ? renderMonth(data, start, bands) : ''}
       ${state.mode === 'week' ? renderTimeGrid(data, bands, start, 7) : ''}
       ${state.mode === 'day' ? renderTimeGrid(data, bands, startOfDay(state.anchor), 1) : ''}
     </div>
@@ -152,7 +152,35 @@ function renderHeader(data) {
 
 // --- Month ----------------------------------------------------
 
-function renderMonth(data, gridStart) {
+/**
+ * Who is working on a given day, as short initials.
+ *
+ * Month view used to receive no bands at all, so filling in a rota appeared to
+ * do nothing — the shift and sleep data was fetched, computed, and then thrown
+ * away because only the week and day time grids consumed it. A 40px cell has no
+ * room for a time grid, so this is the compact form: who is working, not when.
+ *
+ * Shifts only. Sleep is excluded deliberately — everyone sleeps every day, so a
+ * marker for it in a month cell carries no information and only adds noise.
+ * Sleep still shapes the free-window maths and still draws in week and day view.
+ */
+function shiftMarks(bands, day, data) {
+  const dayStart = day.getTime();
+  const dayEnd = dayStart + DAY_MS;
+
+  const labels = { a: data.labelA || 'You', b: data.labelB || 'Partner' };
+  const working = new Set(
+    (bands || [])
+      .filter(b => b.kind !== 'sleep' && b.start < dayEnd && b.end > dayStart)
+      .map(b => b.person)
+  );
+
+  return ['a', 'b']
+    .filter(person => working.has(person))
+    .map(person => ({ person, label: labels[person], initial: labels[person].charAt(0).toUpperCase() }));
+}
+
+function renderMonth(data, gridStart, bands) {
   const today = startOfDay(new Date());
   const month = state.anchor.getMonth();
 
@@ -168,13 +196,22 @@ function renderMonth(data, gridStart) {
     // Three chips fit before the cell gets noisy; the rest collapse to a count.
     const shown = dayEvents.slice(0, 3);
     const overflow = dayEvents.length - shown.length;
+    const marks = shiftMarks(bands, day, data);
+    const workingLabel = marks.length
+      ? `, ${marks.map(m => `${m.label} working`).join(', ')}`
+      : '';
 
     cells.push(`
       <button type="button"
         class="cal-cell${outside ? ' cal-cell--outside' : ''}${isToday ? ' cal-cell--today' : ''}"
         data-date="${dateKey(day)}"
-        aria-label="${escapeHtml(fullDateLabel(day))}, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}">
-        <span class="cal-cell-date num">${day.getDate()}</span>
+        aria-label="${escapeHtml(fullDateLabel(day))}, ${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}${escapeHtml(workingLabel)}">
+        <span class="cal-cell-head">
+          <span class="cal-cell-date num">${day.getDate()}</span>
+          ${marks.length ? `<span class="cal-cell-shifts">${marks.map(m => `
+            <span class="cal-shift-mark" title="${escapeHtml(m.label)} working">${escapeHtml(m.initial)}</span>
+          `).join('')}</span>` : ''}
+        </span>
         <span class="cal-cell-events">
           ${shown.map(ev => `
             <span class="cal-chip ${ownerClass(ev, data)}" title="${escapeHtml(ev.title || '')}">

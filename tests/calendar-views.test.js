@@ -275,3 +275,62 @@ describe('renderCalendarViews', () => {
     expect(container.querySelector('.cal-event-title').innerHTML).not.toContain('<img');
   });
 });
+
+describe('month view shows who is working', () => {
+  let container;
+
+  // The bug: renderMonth was called without `bands`, so shift and sleep data
+  // was fetched, computed by buildBands(), and then thrown away. Only the week
+  // and day time grids consumed it. Month is the default view, so filling in a
+  // rota appeared to do nothing at all — and nothing errored, because the
+  // argument was simply never passed.
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    setViewState({ mode: 'month', anchor: new Date(2026, 7, 10) });
+  });
+
+  it('marks the days a night shift covers', () => {
+    renderCalendarViews(container, { ...baseData(), scheduleA: NIGHT_SHIFT });
+    const marks = container.querySelectorAll('.cal-shift-mark');
+    expect(marks.length).toBeGreaterThan(0);
+  });
+
+  it('names the person in the marker rather than relying on colour', () => {
+    // Identity colours are being removed: a hue the reader has to decode
+    // carries less than a letter that names who it is.
+    renderCalendarViews(container, { ...baseData(), scheduleA: NIGHT_SHIFT, labelA: 'Jamall' });
+    const marks = [...container.querySelectorAll('.cal-shift-mark')];
+    expect(marks.length).toBeGreaterThan(0);
+    expect(marks[0].textContent.trim()).toBe('J');
+  });
+
+  it('tells a screen reader who is working that day', () => {
+    renderCalendarViews(container, { ...baseData(), scheduleA: NIGHT_SHIFT, labelA: 'Jamall' });
+    const labelled = [...container.querySelectorAll('.cal-cell')]
+      .map(c => c.getAttribute('aria-label'))
+      .filter(l => l && l.includes('Jamall working'));
+    expect(labelled.length).toBeGreaterThan(0);
+  });
+
+  it('shows nothing when no rota is recorded', () => {
+    // baseData() ships a night shift, so an empty rota has to be explicit.
+    renderCalendarViews(container, {
+      ...baseData(),
+      scheduleA: { patterns: [], sleepRules: [] },
+      scheduleB: { patterns: [], sleepRules: [] },
+    });
+    expect(container.querySelectorAll('.cal-shift-mark')).toHaveLength(0);
+  });
+
+  it('does not mark sleep in month view', () => {
+    // Everyone sleeps every day, so a marker for it carries no information and
+    // only adds noise. Sleep still shapes the free-window maths and still
+    // draws in week and day view.
+    renderCalendarViews(container, { ...baseData(), scheduleA: NIGHT_SHIFT });
+    const marks = container.querySelectorAll('.cal-shift-mark');
+    // A night shift sleeper sleeps most days; if sleep were marked, nearly
+    // every one of the 42 cells would carry a mark.
+    expect(marks.length).toBeLessThan(42);
+  });
+});

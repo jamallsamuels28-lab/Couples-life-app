@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v16';
+const CACHE_NAME = 'couples-life-v17';
 
 const APP_SHELL_ASSETS = [
   './',

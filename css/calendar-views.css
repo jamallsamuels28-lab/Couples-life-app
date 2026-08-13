@@ -486,3 +486,37 @@
     max-height: 66vh;
   }
 }
+
+/* ---- Month view: who is working ----
+   Month cells used to show no shift or sleep information at all, so filling in
+   a rota looked like it had done nothing. A cell has no room for a time grid,
+   so this says who is working rather than when. Initials, not colour: a hue the
+   reader has to decode carries less than a letter that names the person. */
+.cal-cell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s1);
+  width: 100%;
+}
+
+.cal-cell-shifts {
+  display: flex;
+  gap: 2px;
+}
+
+.cal-shift-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: var(--r-sm);
+  background: var(--ink-2);
+  color: var(--bg);
+  font-family: var(--font-num);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+}

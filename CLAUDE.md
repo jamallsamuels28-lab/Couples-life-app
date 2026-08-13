@@ -161,15 +161,6 @@ Known violation: `.input-error-msg` hardcodes `#e55`, outside the token system.
 
 ## Next up, in order
 
-0. **Shift and sleep do not appear in month view.** Diagnosed, not fixed.
-   `calendar-views.js` calls `renderTimeGrid` only for `state.mode === 'week'`
-   and `'day'` (around line 112). Month mode renders no bands at all, and month
-   is the default view — so filling in a rota appears to do nothing. The fetch,
-   `personSchedule()` and `buildBands()` are all correct; their output is simply
-   discarded. A month cell is too small for a time grid, so it needs a compact
-   per-day marker instead: an edge stripe or a short label like "Night shift".
-   Fix this before anything else — it makes the feature look broken.
-
 0b. **Drop the identity colours.** Decided: colour-per-person is the wrong
    concept here and is going. `--id-a` / `--id-b`, the two OKLCH hues, and
    `js/colour-picker.js` all come out. Events and bands should say whose they
