@@ -121,9 +121,18 @@
    variables rather than inlined so the whole scheme stays changeable in one
    place, and so the ~50 existing usages did not each need editing. */
 :root {
-  --id-a: var(--ink);
-  --id-b: var(--ink-3);
+  /* Blue and amber: the pair that stays distinguishable under the common forms
+     of colour blindness, where red/green does not. Same lightness and chroma so
+     neither reads as more important than the other. */
+  --id-a: oklch(0.70 0.125 250);
+  --id-b: oklch(0.70 0.125 65);
   --id-shared: var(--ink-2);
+}
+
+/* Darkened slightly in light mode so both keep contrast against white. */
+:root[data-theme="light"] {
+  --id-a: oklch(0.55 0.135 250);
+  --id-b: oklch(0.55 0.135 65);
 }
 
 /* ============================================================

@@ -520,3 +520,9 @@
   font-weight: 500;
   line-height: 1;
 }
+
+/* Month markers carry the person's colour as well as their initial, so they
+   agree with the legend. Two channels rather than one: colour alone had no key
+   and was the original complaint, and an initial alone is easy to miss. */
+.cal-shift-mark--a { background: var(--id-a); color: var(--bg); }
+.cal-shift-mark--b { background: var(--id-b); color: var(--bg); }

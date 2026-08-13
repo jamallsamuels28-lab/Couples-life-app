@@ -209,7 +209,7 @@ function renderMonth(data, gridStart, bands) {
         <span class="cal-cell-head">
           <span class="cal-cell-date num">${day.getDate()}</span>
           ${marks.length ? `<span class="cal-cell-shifts">${marks.map(m => `
-            <span class="cal-shift-mark" title="${escapeHtml(m.label)} working">${escapeHtml(m.initial)}</span>
+            <span class="cal-shift-mark cal-shift-mark--${m.person}" title="${escapeHtml(m.label)} working">${escapeHtml(m.initial)}</span>
           `).join('')}</span>` : ''}
         </span>
         <span class="cal-cell-events">
