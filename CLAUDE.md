@@ -208,6 +208,66 @@ Known violation: `.input-error-msg` hardcodes `#e55`, outside the token system.
 3. **Shared vs personal events, with identity colours.** The two hues exist in
    the design system and the ribbon already uses them; events do not.
 
+## Ideas, once the backlog above is clear
+
+Ordered by how much they serve the one thing this app is for: two people with
+mismatched schedules finding time together. Anything that does not serve that
+was deliberately left out — weather, task lists, shared shopping, habit
+tracking. The app was just stripped down for this reason; do not refill it.
+
+### 1. Notify when mutual free time appears
+
+The highest-value item here, and the only one with real design decisions.
+
+The free-window engine already computes availability better than an
+off-the-shelf calendar, because it knows about shifts and sleep. But it only
+speaks when someone opens the app. A push saying "You're both free Thursday
+15:00–19:00" is the entire product in one notification.
+
+Feasible: iOS 16.4+ supports web push for **installed** PWAs, which both users
+have. Needs a VAPID key pair, a `push_subscriptions` table, a Supabase Edge
+Function to send, and something scheduled to trigger it (pg_cron or an external
+ping — Supabase has no built-in scheduler on the free tier).
+
+Decisions to make BEFORE writing any of it, because each one is the difference
+between useful and unbearable:
+
+- **When does it fire?** A window appearing is not news if it appears every
+  day. Probably: only windows over some minimum length, and only a fixed number
+  of notifications per week.
+- **What counts as a change worth announcing?** A rota edit can create or
+  destroy dozens of windows at once. Announcing each one is spam; announcing
+  none makes the feature pointless. Likely a daily digest rather than
+  event-driven pushes.
+- **Who gets told?** Both people, or only the one who did not make the change?
+- **Quiet hours are not optional here.** One of the two works nights. A
+  notification at 14:00 is the middle of the night for a day sleeper, and the
+  sleep rules already in the database say exactly when that is — use them.
+
+### 2. One-tap "book this window"
+
+The dashboard already surfaces the top three mutual free windows as read-only
+text. Making one tappable — creating a shared event spanning that slot — closes
+the loop between finding time and protecting it. Small, and it makes the
+existing headline feature do something.
+
+### 3. Countdown to the next shared day off
+
+One line at the top: "Next full day together: Sunday, in 9 days." Computable
+entirely from data already fetched. For a night-shift household this is the
+number that actually matters, and it costs almost nothing to add.
+
+### 4. Protected time
+
+A recurring block that means "do not schedule over this" — a date night, or the
+evening before a run of nights. The inverse of an event: it defends free time
+rather than filling it. Pairs with the repeat picker, which already exists.
+Needs a decision on whether protected time is busy time to the overlap engine
+(it is busy to *other* commitments, but it is not busy to each other — that
+distinction is the whole point and the engine has no concept of it yet).
+
+---
+
 Also unchecked: whether the Fitness tab has the same shape of bug the Food tab
 did, where an incomplete profile removed the whole feature rather than just the
 part that needed the profile. Worth signing in as the other person and looking.
