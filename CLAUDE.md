@@ -161,6 +161,37 @@ Known violation: `.input-error-msg` hardcodes `#e55`, outside the token system.
 
 ## Next up, in order
 
+0. **Shift and sleep do not appear in month view.** Diagnosed, not fixed.
+   `calendar-views.js` calls `renderTimeGrid` only for `state.mode === 'week'`
+   and `'day'` (around line 112). Month mode renders no bands at all, and month
+   is the default view — so filling in a rota appears to do nothing. The fetch,
+   `personSchedule()` and `buildBands()` are all correct; their output is simply
+   discarded. A month cell is too small for a time grid, so it needs a compact
+   per-day marker instead: an edge stripe or a short label like "Night shift".
+   Fix this before anything else — it makes the feature look broken.
+
+0b. **Drop the identity colours.** Decided: colour-per-person is the wrong
+   concept here and is going. `--id-a` / `--id-b`, the two OKLCH hues, and
+   `js/colour-picker.js` all come out. Events and bands should say whose they
+   are in words — a name or a label — not a hue the reader has to decode. The
+   overlap ribbon is the one place a two-colour fill genuinely carries meaning;
+   decide explicitly whether it keeps a neutral two-tone treatment or also goes
+   to labels. Touches `css/calendar-views.css`, `css/overlap-ribbon.css`,
+   `css/components.css`, `css/modules.css`, `css/design-tokens.css` and
+   `tests/colour-picker.test.js`.
+
+0c. **UK bank holidays, all three nations, filterable.** Do NOT type the dates
+   from memory: Easter-derived holidays move each year, and England & Wales,
+   Scotland and Northern Ireland have different sets. gov.uk publishes an
+   official feed at <https://www.gov.uk/bank-holidays.json> — no key, all three
+   nations, several years either side. Generate a static file from it with a
+   script under `scripts/`, the same pattern the food and exercise seeds used:
+   real provenance, static output, works offline. Each person picks which
+   nation applies. Holidays are display-only markers — decide explicitly
+   whether they count as busy time before letting them near `free-windows.js`
+   (they should not; a bank holiday is not a shift).
+
+
 1. **All-day events.** `events` has only `start_time` / `end_time`, so a
    birthday or a day off has to occupy a specific time slot. Needs a migration,
    changes to the views, and changes to `free-windows.js`. Do this one first
