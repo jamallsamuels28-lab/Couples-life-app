@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v22';
+const CACHE_NAME = 'couples-life-v23';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -187,3 +187,63 @@ async function networkFirst(request) {
     });
   }
 }
+
+// ============================================================
+// Web push
+// ============================================================
+//
+// iOS 16.4+ delivers these only to a PWA added to the home screen; a Safari
+// tab never receives them. Both users have it installed.
+
+self.addEventListener('push', (event) => {
+  // A push with no readable payload still has to show something: on iOS a
+  // received push that displays no notification counts against the app and
+  // repeated offences revoke the permission entirely.
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: 'Couples Calendar', body: 'You have an update.' };
+  }
+
+  const title = payload.title || 'Couples Calendar';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || '',
+      icon: './icons/icon-192x192.png',
+      badge: './icons/icon-192x192.png',
+      // Collapses an earlier notification about the same day rather than
+      // stacking a second one.
+      tag: payload.tag || 'free-window',
+      renotify: false,
+      data: { url: payload.url || './' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = event.notification.data?.url || './';
+
+  // Focus an already-open window rather than opening a second copy of the app.
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if ('focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});
+
+// A push service can rotate a subscription without asking. Without this the
+// endpoint silently goes stale and notifications simply stop.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        client.postMessage({ type: 'push-subscription-changed' });
+      }
+    })
+  );
+});
