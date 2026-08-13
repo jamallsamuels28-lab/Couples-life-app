@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v19';
+const CACHE_NAME = 'couples-life-v20';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -75,6 +75,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Never touch an OAuth callback. Google redirects back to the app's own URL
+  // carrying ?code= and ?state=, which cache-first cannot match (the query
+  // string makes it a different request from the cached shell) and must not
+  // serve stale anyway — the code is single-use and expires in seconds.
+  // Intercepting it produced the service worker's own "Offline" page at the
+  // exact moment the sign-in came back.
+  if (isAuthCallback(url)) {
+    return;
+  }
+
   // Network-first for Supabase API calls and external resources
   if (isApiOrExternal(url)) {
     event.respondWith(networkFirst(event.request));
@@ -84,6 +94,26 @@ self.addEventListener('fetch', (event) => {
   // Cache-first for app shell assets
   event.respondWith(cacheFirst(event.request));
 });
+
+/**
+ * An OAuth provider redirecting back into the app.
+ *
+ * Matched on the query rather than the path, because the callback lands on the
+ * app's own root URL — there is no distinct route to key off.
+ */
+function isAuthCallback(url) {
+  if (url.origin !== self.location.origin) return false;
+  return url.searchParams.has('code')
+    || url.searchParams.has('state')
+    || url.searchParams.has('error');
+}
+
+/** Minimal escaper — the fallback page interpolates a URL and an error string. */
+function escapeForHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function isApiOrExternal(url) {
   // Supabase endpoints
@@ -111,9 +141,24 @@ async function cacheFirst(request) {
       cache.put(request, response.clone());
     }
     return response;
-  } catch {
-    // If both cache and network fail, return a basic offline fallback
-    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+  } catch (error) {
+    // Only say "offline" when the browser actually is. This used to claim it
+    // unconditionally, which sent a failed OAuth redirect looking like a
+    // connectivity problem when the connection was fine.
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    return new Response(
+      `<!doctype html><meta charset="utf-8">
+       <title>${offline ? 'Offline' : 'Could not load'}</title>
+       <body style="font-family:system-ui;padding:2rem;line-height:1.5">
+       <h1 style="font-size:1.1rem">${offline ? 'You are offline' : 'Could not load that page'}</h1>
+       <p>${offline
+         ? 'This page is not in the offline cache.'
+         : 'The network request failed but the browser reports a connection.'}</p>
+       <p style="color:#666;font-size:.9rem">${escapeForHtml(request.url)}</p>
+       <p style="color:#666;font-size:.9rem">${escapeForHtml(String(error && error.message || error))}</p>
+       <p><a href="./">Back to the calendar</a></p>`,
+      { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/html' } }
+    );
   }
 }
 
