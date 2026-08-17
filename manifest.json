@@ -2,7 +2,7 @@
   "name": "Couples Life App",
   "short_name": "CouplesLife",
   "description": "A unified PWA for two partners — shared calendar, step tracking, and food logging with AI recipes.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#1a1a1a",

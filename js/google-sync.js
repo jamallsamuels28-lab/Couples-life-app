@@ -50,9 +50,22 @@ export function lastConnectError() {
 // mocks supabase-client without re-exporting every constant.
 const functionUrl = () => `${SUPABASE_URL}/functions/v1/google-calendar-sync`;
 
-/** The app itself is the redirect target; the code is read from the query. */
+/**
+ * The app itself is the redirect target; the code is read from the query.
+ *
+ * Normalised to the directory, never a file. Launching from the home-screen
+ * icon used to open .../Couples-life-app/index.html, so this returned a URL
+ * one path segment different from the one registered in Google Cloud, and the
+ * consent screen failed with redirect_uri_mismatch — but only from the
+ * installed app, never from a Safari tab, which is what made it look
+ * intermittent.
+ *
+ * Google matches the redirect URI as an exact string. Anything that can vary
+ * between launch contexts has to be stripped here rather than trusted.
+ */
 export function redirectUri() {
-  return `${window.location.origin}${window.location.pathname}`;
+  const path = window.location.pathname.replace(/[^/]*$/, '');
+  return `${window.location.origin}${path}`;
 }
 
 // ------------------------------------------------------------
@@ -237,7 +250,11 @@ export async function completeGoogleAuth() {
     return { handled: true, success: false, error };
   }
 
-  const result = await callFunction('connect', { code, redirectUri: clean ? `${window.location.origin}${clean}` : redirectUri() });
+  // Must be byte-identical to the redirect_uri sent with the authorisation
+  // request — Google validates it again at the token exchange and rejects any
+  // difference. Built from the same function for exactly that reason; deriving
+  // it separately here is what made the two drift apart.
+  const result = await callFunction('connect', { code, redirectUri: redirectUri() });
   recordConnectError(result.success ? null : (result.error || 'The connection could not be completed.'));
   return { handled: true, ...result };
 }
