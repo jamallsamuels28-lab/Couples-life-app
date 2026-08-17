@@ -1186,10 +1186,6 @@ export async function renderCalendarDashboard(mount) {
         <span class="stat-tile-label">Free windows</span>
         <span class="stat-tile-value">${weekWindows.length}<small>next ${LOOKAHEAD_DAYS}d</small></span>
       </div>
-      <div class="stat-tile stat-tile--shared">
-        <span class="stat-tile-label">Next free</span>
-        <span class="stat-tile-value">${nextWindowSummary(weekWindows)}</span>
-      </div>
       <div class="stat-tile stat-tile--a">
         <span class="stat-tile-label">${escapeHtml(labelA)} busy</span>
         <span class="stat-tile-value">${instances.filter(ev => ev.is_busy && user && ev.user_id === user.id).length}</span>
@@ -1453,27 +1449,6 @@ export function wireEventList(mount) {
 }
 
 // --- Formatting helpers ---
-
-/**
- * When the next mutual free window starts, and how long it runs.
- *
- * This tile used to read "Time together" and show the total free minutes
- * across the whole lookahead — something like "63h 20m". That is not time
- * together, it is time you could theoretically be together, and there is
- * nothing you can do with it. The next window is the number you act on.
- *
- * @param {Array<{start: Date, end: Date}>} windows - already sorted by score
- */
-function nextWindowSummary(windows) {
-  if (!windows || windows.length === 0) return 'None';
-
-  // Sorted by score elsewhere, so the soonest is not necessarily first.
-  const soonest = [...windows].sort((a, b) => a.start - b.start)[0];
-  const label = dayLabel(soonest.start);
-  const duration = formatMinutes(minutesBetween(soonest));
-
-  return `${escapeHtml(label)} ${formatClock(soonest.start)}<small>${escapeHtml(duration)}</small>`;
-}
 
 /** Maps an event record to the {start, end} shape the ribbon expects */
 function toBlock(ev) {
