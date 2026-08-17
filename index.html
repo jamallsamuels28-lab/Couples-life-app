@@ -115,9 +115,29 @@
 
       // Production (e.g. GitHub Pages): register normally for offline support.
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
+        // updateViaCache: 'none' stops the browser serving sw.js itself from
+        // its HTTP cache, which is what delayed every deploy: the new worker
+        // could not be noticed because the file announcing it was cached.
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
           .then((registration) => {
             console.log('SW registered:', registration.scope);
+
+            // A worker that takes control mid-session is serving a different
+            // build than the page was loaded with. Reload once so the two
+            // agree — this is the "reload twice" dance, automated.
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (refreshing) return;
+              refreshing = true;
+              window.location.reload();
+            });
+
+            // Check for a new build whenever the app comes back to the front,
+            // not only on a cold start. A PWA left open for days would
+            // otherwise never look.
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') registration.update();
+            });
           })
           .catch((error) => {
             console.warn('SW registration failed:', error);
