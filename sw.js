@@ -1,7 +1,7 @@
 // Service Worker for Couples Life App
 // Cache-first for app shell assets, network-first for API/external calls
 
-const CACHE_NAME = 'couples-life-v25';
+const CACHE_NAME = 'couples-life-v26';
 
 const APP_SHELL_ASSETS = [
   './',
@@ -91,9 +91,51 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for app shell assets
+  // App code is network-first, with the cache as the offline fallback.
+  //
+  // This was cache-first, which meant a deployed change was invisible until
+  // the browser happened to notice sw.js had a new CACHE_NAME — and sw.js is
+  // itself cached, so that could take a day. Three separate fixes appeared not
+  // to work because of it, and "clear your cache" is not a reasonable thing to
+  // ask of the two people using this.
+  //
+  // Costs a network round trip per file on load. Offline still works: the
+  // catch falls through to exactly the cache-first path used before.
+  if (isAppCode(url)) {
+    event.respondWith(networkFirstThenCache(event.request));
+    return;
+  }
+
+  // Everything else — icons, manifest — is cache-first. They change rarely and
+  // are the assets worth having instantly.
   event.respondWith(cacheFirst(event.request));
 });
+
+/** Code and styles, the things that change on every deploy. */
+function isAppCode(url) {
+  return /\.(js|css|html)$/.test(url.pathname) || url.pathname.endsWith('/');
+}
+
+/**
+ * Fresh when online, cached when not.
+ *
+ * The opposite trade-off from cacheFirst: a round trip on every load in
+ * exchange for never serving code the user has already been told is fixed.
+ */
+async function networkFirstThenCache(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return cacheFirst(request);
+  }
+}
 
 /**
  * An OAuth provider redirecting back into the app.
