@@ -1204,7 +1204,7 @@ export async function renderCalendarDashboard(mount) {
       <div id="ribbon-mount"></div>
     </section>
 
-    <details class="disclosure mt-4" id="free-window-disclosure" open>
+    <details class="disclosure mt-4" id="free-window-disclosure">
       <summary>
         <span>Mutual free time</span>
         <span class="disclosure-meta">${weekWindows.length}</span>

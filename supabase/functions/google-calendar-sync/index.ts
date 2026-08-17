@@ -395,17 +395,62 @@ async function pullRemote(
     // An event we pushed but whose mapping we lost — do not duplicate it.
     if (isOurs && remote.extendedProperties?.private?.localId) continue;
 
+    // Second guard, independent of the mapping table. If an event with the
+    // same owner, title and exact times is already here, this is the same
+    // event arriving again rather than a new one — adopt it and write the
+    // missing mapping instead of inserting a copy.
+    //
+    // Belt and braces on purpose: the mapping is the real mechanism, but it
+    // failing silently is precisely what produced duplicates, and this catches
+    // the case whatever the cause.
+    const { data: existing } = await admin
+      .from('events')
+      .select('id')
+      .eq('user_id', shaped.user_id)
+      .eq('title', shaped.title)
+      .eq('start_time', shaped.start_time)
+      .eq('end_time', shaped.end_time)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      await admin.from('google_event_map').upsert({
+        connection_id: connection.id,
+        event_id: existing.id,
+        google_event_id: remote.id,
+        google_etag: remote.etag,
+        last_remote_update: new Date(remoteUpdated).toISOString(),
+      }, { onConflict: 'connection_id,google_event_id' });
+      continue;
+    }
+
     const { data: inserted } = await admin
       .from('events').insert(shaped).select('id').single();
 
     if (inserted) {
-      await admin.from('google_event_map').insert({
+      // The mapping is what stops this event being pulled in again on the next
+      // run. Its result used to be discarded: if the write failed, the event
+      // row survived with nothing linking it to its Google id, so every
+      // subsequent sync saw an unmapped remote event and inserted another copy.
+      // One extra duplicate per sync, forever — doubles, then triples.
+      //
+      // upsert rather than insert, because a mapping left behind by an earlier
+      // partial run would otherwise collide and fail for good.
+      const { error: mapError } = await admin.from('google_event_map').upsert({
         connection_id: connection.id,
         event_id: inserted.id,
         google_event_id: remote.id,
         google_etag: remote.etag,
         last_remote_update: new Date(remoteUpdated).toISOString(),
-      });
+      }, { onConflict: 'connection_id,google_event_id' });
+
+      if (mapError) {
+        // Roll the event back rather than leave an orphan that will be
+        // recreated on every future sync. Losing one pull is recoverable;
+        // an unmapped event is not, it just multiplies.
+        await admin.from('events').delete().eq('id', inserted.id);
+        continue;
+      }
       pulled++;
     }
   }
