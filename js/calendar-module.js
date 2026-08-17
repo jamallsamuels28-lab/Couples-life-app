@@ -1145,9 +1145,6 @@ export async function renderCalendarDashboard(mount) {
   // Windows arrive sorted by score. The hero shows the best one to spend time
   // together, which is not necessarily the soonest.
   const nextWindow = weekWindows[0] || null;
-  const weekFreeMinutes = weekWindows.reduce(
-    (sum, w) => sum + (w.end.getTime() - w.start.getTime()) / 60000, 0
-  );
   const scheduleWarnings = weekFree.warnings || [];
 
   mount.innerHTML = `
@@ -1190,8 +1187,8 @@ export async function renderCalendarDashboard(mount) {
         <span class="stat-tile-value">${weekWindows.length}<small>next ${LOOKAHEAD_DAYS}d</small></span>
       </div>
       <div class="stat-tile stat-tile--shared">
-        <span class="stat-tile-label">Time together</span>
-        <span class="stat-tile-value">${formatMinutes(Math.round(weekFreeMinutes))}</span>
+        <span class="stat-tile-label">Next free</span>
+        <span class="stat-tile-value">${nextWindowSummary(weekWindows)}</span>
       </div>
       <div class="stat-tile stat-tile--a">
         <span class="stat-tile-label">${escapeHtml(labelA)} busy</span>
@@ -1211,21 +1208,23 @@ export async function renderCalendarDashboard(mount) {
       <div id="ribbon-mount"></div>
     </section>
 
-    <section>
-      <div class="section-heading">
-        <h3>Mutual free time</h3>
-        <span class="section-meta">${weekWindows.length} window${weekWindows.length === 1 ? '' : 's'}</span>
-      </div>
-      <div id="free-window-mount"></div>
-    </section>
+    <details class="disclosure mt-4" id="free-window-disclosure" open>
+      <summary>
+        <span>Mutual free time</span>
+        <span class="disclosure-meta">${weekWindows.length}</span>
+        ${chevronSvg()}
+      </summary>
+      <div class="disclosure-body" id="free-window-mount"></div>
+    </details>
 
-    <section>
-      <div class="section-heading">
-        <h3>Upcoming</h3>
-        <span class="section-meta">${instances.length} event${instances.length === 1 ? '' : 's'}</span>
-      </div>
-      <div id="event-list-mount"></div>
-    </section>
+    <details class="disclosure mt-4" id="event-list-disclosure">
+      <summary>
+        <span>Upcoming</span>
+        <span class="disclosure-meta">${instances.length}</span>
+        ${chevronSvg()}
+      </summary>
+      <div class="disclosure-body" id="event-list-mount"></div>
+    </details>
   `;
 
   // Ribbon is built as DOM nodes, not markup
@@ -1454,6 +1453,27 @@ export function wireEventList(mount) {
 }
 
 // --- Formatting helpers ---
+
+/**
+ * When the next mutual free window starts, and how long it runs.
+ *
+ * This tile used to read "Time together" and show the total free minutes
+ * across the whole lookahead — something like "63h 20m". That is not time
+ * together, it is time you could theoretically be together, and there is
+ * nothing you can do with it. The next window is the number you act on.
+ *
+ * @param {Array<{start: Date, end: Date}>} windows - already sorted by score
+ */
+function nextWindowSummary(windows) {
+  if (!windows || windows.length === 0) return 'None';
+
+  // Sorted by score elsewhere, so the soonest is not necessarily first.
+  const soonest = [...windows].sort((a, b) => a.start - b.start)[0];
+  const label = dayLabel(soonest.start);
+  const duration = formatMinutes(minutesBetween(soonest));
+
+  return `${escapeHtml(label)} ${formatClock(soonest.start)}<small>${escapeHtml(duration)}</small>`;
+}
 
 /** Maps an event record to the {start, end} shape the ribbon expects */
 function toBlock(ev) {

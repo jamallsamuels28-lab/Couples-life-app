@@ -2015,3 +2015,22 @@
 @media (prefers-reduced-motion: reduce) {
   .day-chip span { transition: none; }
 }
+
+/* A count sitting in a disclosure summary, so the section says how much it is
+   hiding without being opened. Pushed to the right, next to the chevron. */
+.disclosure-meta {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+/* The "Next free" tile carries a duration after the time. Smaller and quieter
+   so the day and time stay the thing you read first. */
+.stat-tile-value small {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  margin-left: var(--s2);
+  font-weight: 400;
+}
